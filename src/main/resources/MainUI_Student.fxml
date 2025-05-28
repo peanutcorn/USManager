@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Button?>
+<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+      alignment="CENTER" spacing="15" fx:controller="com.usm.university.StudentMainUIController">
+    <Label text="Welcome, Student!" style="-fx-font-size:24px"/>
+    <Button text="Student Information" onAction="#goToUserInformation"/>
+    <Button text="Scholarship UI" onAction="#goToScholarshipUI"/>
+    <Button text="Scholarship Inquiry" onAction="#goToScholarshipInquiry"/>
+    <Button text="Scholarship Application" onAction="#goToScholarshipApplication"/>
+</VBox>
