@@ -14,39 +14,36 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    makeStyles
+    styled,
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import axios from 'axios';
 
-const useStyles = makeStyles((theme) => ({
-    container: {
+const container = styled(Container)(({ theme }) => ({
         paddingTop: theme.spacing(4),
         paddingBottom: theme.spacing(4),
-    },
-    paper: {
+    }))
+const paper = styled(Paper)(({ theme }) => ({
         padding: theme.spacing(3),
-    },
-    header: {
+    }))
+const header = styled('div')(({ theme }) => ({
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: theme.spacing(3),
-    },
-    tableContainer: {
+    }))
+const tableContainer = styled(TableContainer)(({ theme }) => ({
         marginTop: theme.spacing(3),
-    },
-    deleteButton: {
+    }))
+const deleteButton = styled(Button)(({ theme }) => ({
         color: theme.palette.error.main,
-    },
-    currentTime: {
+    }))
+const currentTime = styled(Typography)(({ theme }) => ({
         marginBottom: theme.spacing(2),
         color: theme.palette.text.secondary,
-    }
-}));
+    }))
 
 const ConfirmedCourses = () => {
-    const classes = useStyles();
     const [courses, setCourses] = useState([]);
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [openDialog, setOpenDialog] = useState(false);
@@ -101,9 +98,9 @@ const ConfirmedCourses = () => {
     }, []);
 
     return (
-        <Container className={classes.container}>
-            <Paper className={classes.paper}>
-                <div className={classes.header}>
+        <container>
+            <paper>
+                <header>
                     <Typography variant="h5">
                         수강신청 확정목록
                     </Typography>
@@ -114,13 +111,13 @@ const ConfirmedCourses = () => {
                     >
                         새로고침
                     </Button>
-                </div>
+                </header>
 
-                <Typography className={classes.currentTime}>
+                <currentTime>
                     Current Time (UTC): {currentTime}
-                </Typography>
+                </currentTime>
 
-                <TableContainer className={classes.tableContainer}>
+                <tableContainer>
                     <Table>
                         <TableHead>
                             <TableRow>
@@ -141,19 +138,18 @@ const ConfirmedCourses = () => {
                                     <TableCell>{course.major}</TableCell>
                                     <TableCell>{course.currentStudents}</TableCell>
                                     <TableCell>
-                                        <Button
-                                            className={classes.deleteButton}
+                                        <deleteButton
                                             startIcon={<DeleteIcon />}
                                             onClick={() => handleDeleteClick(course)}
                                         >
                                             삭제
-                                        </Button>
+                                        </deleteButton>
                                     </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
-                </TableContainer>
+                </tableContainer>
 
                 <Dialog
                     open={openDialog}
@@ -177,8 +173,8 @@ const ConfirmedCourses = () => {
                         </Button>
                     </DialogActions>
                 </Dialog>
-            </Paper>
-        </Container>
+            </paper>
+        </container>
     );
 };
 

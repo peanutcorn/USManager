@@ -11,31 +11,28 @@ import {
     TableHead,
     TableRow,
     Typography,
-    makeStyles,
+    styled,
 } from '@mui/material';
 import axios from 'axios';
 
-const useStyles = makeStyles((theme) => ({
-    container: {
+const container = styled(Container)(({ theme }) => ({
         paddingTop: theme.spacing(4),
-        paddingBottom: theme.spacing(4),
-    },
-    paper: {
+        paddingBottom: theme.spacing(4)
+    }));
+const paper = styled(Paper)(({ theme }) => ({
         padding: theme.spacing(3),
-    },
-    searchSection: {
+    }));
+const searchSection = styled('div')(({ theme }) => ({
         marginBottom: theme.spacing(4),
-    },
-    button: {
+    }));
+const button = styled(Button)(({ theme }) => ({
         margin: theme.spacing(1),
-    },
-    tableContainer: {
+    }));
+const tableContainer = styled(TableContainer)(({ theme }) => ({
         marginTop: theme.spacing(3),
-    },
-}));
+    }));
 
 const CourseRegistration = () => {
-    const classes = useStyles();
     const [majorSearch, setMajorSearch] = useState('');
     const [subjectSearch, setSubjectSearch] = useState('');
     const [courses, setCourses] = useState([]);
@@ -117,13 +114,13 @@ const CourseRegistration = () => {
         alert('수강신청이 완료되었습니다.');
     };
 
-    // 캐퍼시티 체크 함수들
+    // 인원초과 체크 함수
     const MAX_STU = async (courseId) => {
         try {
             const response = await axios.get(`/api/courses/check-capacity/${courseId}`);
             return response.data.isExceeded;
         } catch (error) {
-            console.error('신청목록 캐퍼시터 에러:', error);
+            console.error('신청목록 인원 초과 에러:', error);
             return true;
         }
     };
@@ -139,27 +136,26 @@ const CourseRegistration = () => {
     };
 
     return (
-        <Container className={classes.container}>
-            <Paper className={classes.paper}>
+        <container>
+            <paper>
                 <Typography variant="h5" gutterBottom>
                     수강신청
                 </Typography>
 
-                <div className={classes.searchSection}>
+                <searchSection>
                     <TextField
                         label="학과 검색"
                         value={majorSearch}
                         onChange={(e) => setMajorSearch(e.target.value)}
                         margin="normal"
                     />
-                    <Button
+                    <button
                         variant="contained"
                         color="primary"
                         onClick={handleSearchMajor}
-                        className={classes.button}
                     >
                         학과 검색
-                    </Button>
+                    </button>
 
                     <TextField
                         label="강의명 검색"
@@ -167,17 +163,16 @@ const CourseRegistration = () => {
                         onChange={(e) => setSubjectSearch(e.target.value)}
                         margin="normal"
                     />
-                    <Button
+                    <button
                         variant="contained"
                         color="primary"
                         onClick={handleSearchSubjects}
-                        className={classes.button}
                     >
                         강의명 검색
-                    </Button>
-                </div>
+                    </button>
+                </searchSection>
 
-                <TableContainer className={classes.tableContainer}>
+                <tableContainer>
                     <Table>
                         <TableHead>
                             <TableRow>
@@ -210,9 +205,9 @@ const CourseRegistration = () => {
                             ))}
                         </TableBody>
                     </Table>
-                </TableContainer>
-            </Paper>
-        </Container>
+                </tableContainer>
+            </paper>
+        </container>
     );
 };
 

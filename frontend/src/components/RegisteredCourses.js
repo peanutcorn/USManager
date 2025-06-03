@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Container,
-    Paper,
+    Paper, styled,
     Table,
     TableBody,
     TableCell,
@@ -9,25 +9,21 @@ import {
     TableHead,
     TableRow,
     Typography,
-    makeStyles,
 } from '@mui/material';
 import axios from 'axios';
 
-const useStyles = makeStyles((theme) => ({
-    container: {
+const container = styled(Container)(({ theme }) => ({
         paddingTop: theme.spacing(4),
         paddingBottom: theme.spacing(4),
-    },
-    paper: {
+    }))
+const paper = styled(Paper)(({ theme }) => ({
         padding: theme.spacing(3),
-    },
-    tableContainer: {
+    }))
+const tableContainer = styled(TableContainer)(({ theme }) => ({
         marginTop: theme.spacing(3),
-    },
-}));
+    }))
 
 const RegisteredCourses = () => {
-    const classes = useStyles();
     const [registeredCourses, setRegisteredCourses] = useState([]);
     const studentInfo = JSON.parse(localStorage.getItem('user'));
 
@@ -58,13 +54,13 @@ const RegisteredCourses = () => {
     };
 
     return (
-        <Container className={classes.container}>
-            <Paper className={classes.paper}>
+        <container>
+            <paper>
                 <Typography variant="h5" gutterBottom>
                     수강신청 확정목록
                 </Typography>
 
-                <TableContainer className={classes.tableContainer}>
+                <tableContainer >
                     <Table>
                         <TableHead>
                             <TableRow>
@@ -87,9 +83,9 @@ const RegisteredCourses = () => {
                             ))}
                         </TableBody>
                     </Table>
-                </TableContainer>
-            </Paper>
-        </Container>
+                </tableContainer>
+            </paper>
+        </container>
     );
 };
 

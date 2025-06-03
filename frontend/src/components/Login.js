@@ -22,62 +22,6 @@ const Login = () => {
     const [error, setError] = useState(''); // 에러 메시지 상태
     const [loading, setLoading] = useState(false); // 로딩 상태
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prevState => ({
-            ...prevState,
-            [name]: value
-        }));
-        if (error) setError('');
-    };
-
-    const determineUserType = (id) => { // ID에 따라 사용자 유형을 결정하는 함수
-        if (id.startsWith('A')) {
-            return 'Admin';
-        } else if (id.length === 8) {
-            return 'Student';
-        } else if (id.length === 10) {
-            return 'Professor';
-        }
-        return '';
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-
-        try {
-            const response = await axios.post('http://localhost:8080/api/auth/login', formData);
-
-            if (response.data.status === 'success') {
-                const { user } = response.data;
-                console.log('Login successful:', user);
-
-                // 사용자 유형 결정
-                localStorage.setItem('user', JSON.stringify(user));
-
-                // 로그인 성공 후 사용자 유형 결정
-                switch (user.userType) {
-                    case 'student':
-                        // 학생 대시보드로 리다이렉트
-                        break;
-                    case 'professor':
-                        // 교수 대시보드로 리다이렉트
-                        break;
-                    case 'admin':
-                        // 관리자 대시보드로 리다이렉트
-                        break;
-                }
-            }
-        } catch (err) {
-            console.error('Login error:', err);
-            setError(err.response?.data?.message || '로그인 실패. 다시 시도해주세요.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const [showPassword, setShowPassword] = useState(false);
 
     const handleClickShowPassword = () => {
