@@ -1,5 +1,6 @@
 -- 기본
 CREATE DATABASE IF NOT EXISTS test_db;
+
 USE test_db;
 
 -- 테이블
@@ -98,3 +99,7 @@ INSERT INTO scores (student_id, subject_id, major_id, ranks, done_grade) VALUES
                                                                              (12345678, 2, 1, 'B', TRUE),
                                                                              (23456789, 3, 2, 'A', TRUE),
                                                                              (34567890, 2, 3, 'B', TRUE);
+
+-- 권한 부여
+GRANT ALL PRIVILEGES ON test_db.* TO 'root'@'localhost';
+FLUSH PRIVILEGES;

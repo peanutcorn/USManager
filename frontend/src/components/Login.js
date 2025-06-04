@@ -12,20 +12,106 @@ import {
     TextField,
     Typography,
 } from "@mui/material";
+import {useNavigate} from "react-router-dom";
+
+// axios 기본 설정을 분리된 파일로 이동
+const API_BASE_URL = 'http://localhost:8080';
+
+axios.defaults.baseURL = API_BASE_URL;
+axios.defaults.withCredentials = true;
+axios.defaults.headers.common['Access-Control-Allow-Origin'] = 'http://localhost:3000';
 
 // 로그인 컴포넌트
 const Login = () => {
+    const [id, setId] = useState('');
+    const [password, setPassword] = useState('');
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({ // 초기 상태 설정
         id: '',
-        password: ''
+        passwords: ''
     });
     const [error, setError] = useState(''); // 에러 메시지 상태
     const [loading, setLoading] = useState(false); // 로딩 상태
 
-    const [showPassword, setShowPassword] = useState(false);
+    const [showpasswords, setShowpasswords] = useState(false);
 
-    const handleClickShowPassword = () => {
-        setShowPassword(!showPassword);
+    const handleClickShowpasswords = () => {
+        setShowpasswords(!showpasswords);
+    };
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prevState => ({
+            ...prevState,
+            [name]: value
+        }));
+        if (error) setError('');
+    };
+
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+
+        try {
+            console.log('Sending login request:', { id, password }); // 디버깅용
+
+            const response = await axios.post('http://localhost:8080/auth/login', {
+                id,
+                password
+            }, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log('Login response:', response.data); // 디버깅용
+
+            // 응답 구조 확인
+            if (response.data.success) {
+                // 로그인 성공
+                const userData = response.data.user;
+                console.log('Login successful:', userData);
+
+                // 세션에 사용자 정보 저장
+                sessionStorage.setItem('user', JSON.stringify(userData));
+                sessionStorage.setItem('isLoggedIn', 'true');
+                sessionStorage.setItem('userRole', response.data.role);
+
+                // 사용자 유형에 따른 리다이렉션
+                switch (response.data.role) {
+                    case 'student':
+                        navigate('/student');
+                        break;
+                    case 'professor':
+                        navigate('/professor');
+                        break;
+                    case 'admin':
+                        navigate('/admin');
+                        break;
+                    default:
+                        navigate('/');
+                }
+            } else {
+                // 로그인 실패
+                console.error('Login failed:', response.data.message);
+                setError(response.data.message || 'Login failed. Please check your credentials.');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+
+            // 에러 응답 구조 확인
+            if (error.response) {
+                console.error('Error response:', error.response.data);
+                setError(error.response.data.message || 'Login failed. Please try again.');
+            } else if (error.request) {
+                console.error('Error request:', error.request);
+                setError('Network error. Please check your connection.');
+            } else {
+                console.error('Error message:', error.message);
+                setError('An unexpected error occurred.');
+            }
+        }
     };
 
     return (
@@ -112,58 +198,77 @@ const Login = () => {
                     >
                         로그인
                     </Typography>
-
-                    <TextField
-                        fullWidth
-                        placeholder="학번"
-                        sx={{
-                            mb: 3,
-                            "& .MuiOutlinedInput-root": {
-                                height: "62px",
-                                bgcolor: "#efefff",
-                                borderRadius: "8px",
-                                "& fieldset": {
-                                    borderColor: "transparent",
+                    <form onSubmit={handleSubmit} noValidate>
+                        <TextField
+                            fullWidth
+                            placeholder="학번"
+                            id="id"
+                            label="ID"
+                            name="id"
+                            autoComplete="off"
+                            value={formData.id}
+                            onChange={handleChange}
+                            error={!!error}
+                            sx={{
+                                mb: 3,
+                                "& .MuiOutlinedInput-root": {
+                                    height: "62px",
+                                    bgcolor: "#efefff",
+                                    borderRadius: "8px",
+                                    "& fieldset": {
+                                        borderColor: "transparent",
+                                    },
                                 },
-                            },
-                            "& .MuiInputBase-input::placeholder": {
-                                color: "#a7a2ff",
-                                opacity: 1,
-                            },
-                        }}
-                    />
-
-                    <TextField
-                        fullWidth
-                        type={showPassword ? "text" : "password"}
-                        placeholder="비밀번호"
-                        sx={{
-                            mb: 5,
-                            "& .MuiOutlinedInput-root": {
-                                height: "62px",
-                                bgcolor: "#efefff",
-                                borderRadius: "8px",
-                                "& fieldset": {
-                                    borderColor: "transparent",
+                                "& .MuiInputBase-input::placeholder": {
+                                    color: "#a7a2ff",
+                                    opacity: 1,
                                 },
-                            },
-                            "& .MuiInputBase-input::placeholder": {
-                                color: "#a7a2ff",
-                                opacity: 1,
-                            },
-                        }}
-                        InputProps={{
-                            endAdornment: (
-                                <InputAdornment position="end">
-                                    <IconButton onClick={handleClickShowPassword} edge="end">
-                                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                                    </IconButton>
-                                </InputAdornment>
-                            ),
-                        }}
-                    />
+                            }}
+                        />
 
+                        <TextField
+                            fullWidth
+                            name="passwords"
+                            label="passwords"
+                            id="passwords"
+                            value={formData.passwords}
+                            onChange={handleChange}
+                            error={!!error}
+                            autoComplete="current-passwords"
+                            type={showpasswords ? "text" : "passwords"}
+                            placeholder="비밀번호"
+                            sx={{
+                                mb: 5,
+                                "& .MuiOutlinedInput-root": {
+                                    height: "62px",
+                                    bgcolor: "#efefff",
+                                    borderRadius: "8px",
+                                    "& fieldset": {
+                                        borderColor: "transparent",
+                                    },
+                                },
+                                "& .MuiInputBase-input::placeholder": {
+                                    color: "#a7a2ff",
+                                    opacity: 1,
+                                },
+                            }}
+                            InputProps={{
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <IconButton onClick={handleClickShowpasswords} edge="end">
+                                            {showpasswords ? <VisibilityOff /> : <Visibility />}
+                                        </IconButton>
+                                    </InputAdornment>
+                                ),
+                            }}
+                        />
+                        {error && (
+                            <Typography variant="body2">
+                                {error}
+                            </Typography>
+                        )}
                     <Button
+                        type="submit"
                         fullWidth
                         variant="contained"
                         sx={{
@@ -178,6 +283,7 @@ const Login = () => {
                     >
                         로그인
                     </Button>
+                    </form>
                 </Box>
             </Container>
         </Box>

@@ -9,7 +9,6 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
-
 import javax.sql.DataSource;
 import java.util.Properties;
 
@@ -40,7 +39,7 @@ public class DatabaseConfig {
     public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource());
-        em.setPackagesToScan("com.education.model");
+        em.setPackagesToScan("com.univm.model");
 
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         em.setJpaVendorAdapter(vendorAdapter);
@@ -71,18 +70,5 @@ public class DatabaseConfig {
         JpaTransactionManager transactionManager = new JpaTransactionManager();
         transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());
         return transactionManager;
-    }
-    // 데이터베이스 로깅 설정 -- 테스트용
-
-    @Bean(name = "SYSTEM_LOGGER")
-    public DatabaseLogger databaseLogger() {
-        return new DatabaseLogger();
-    }
-}
-// 로거 -- 안씀
-class DatabaseLogger {
-    public void logDatabaseOperation(String operation, String details) {
-        String timestamp = java.time.LocalDateTime.now().toString();
-        System.out.println(String.format("[%s] %s: %s", timestamp, operation, details));
     }
 }

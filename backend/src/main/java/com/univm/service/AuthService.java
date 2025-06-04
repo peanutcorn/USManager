@@ -4,96 +4,108 @@ import com.univm.config.DatabaseConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import javax.sql.DataSource;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.DataAccessException;
 
 @Service
 public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
-    // 사용자 ID에 따라 사용자 유형을 결정하는 메서드
-    public String determineUserType(String id) {
-        if (id.startsWith("A") && id.length() == 7) {
-            return "admin";
-        } else if (id.length() == 8) {
-            return "student";
-        } else if (id.length() == 10) {
-            return "professor";
-        }
-        throw new IllegalArgumentException("Invalid ID format");
-    }
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
-    // 사용자 로그인을 수행하는 메서드
     public Map<String, Object> authenticate(String id, String password) {
-        String userType = determineUserType(id);
-        String query = buildAuthQuery(userType);
+        try {
+            String userType = determineUserType(id);
+            String query = buildQuery(userType);
 
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            return jdbcTemplate.queryForObject(query,
+                    (rs, rowNum) -> {
+                        Map<String, Object> result = new HashMap<>();
+                        result.put("id", id);
+                        result.put("name", rs.getString("name"));
+                        result.put("userType", userType);
 
-            setQueryParameters(pstmt, id, password, userType);
+                        // 사용자 유형별 추가 정보
+                        switch (userType) {
+                            case "student":
+                                result.put("major", rs.getString("major"));
+                                result.put("score", rs.getFloat("score"));
+                                break;
+                            case "professor":
+                                result.put("major", rs.getString("major"));
+                                break;
+                            case "admin":
+                                // 관리자는 기본 정보만
+                                break;
+                        }
 
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return buildUserResponse(rs, userType);
-                }
-            }
-        } catch (SQLException e) { // 데이터베이스 연결 실패 시 예외 처리
-            logger.error("로그인 중 데이터베이스 연결 실패: ", e);
-            throw new RuntimeException("인증 실패", e);
+                        return result;
+                    },
+                    id, password
+            );
+        } catch (Exception e) {
+            logger.error("Authentication failed for ID: {}", id, e);
+            return null;
         }
-        return null;
     }
 
-    // 사용자 유형에 따라 적절한 SQL 쿼리를 빌드하는 메서드
-    private String buildAuthQuery(String userType) {
-        return switch (userType) {
-            case "student" -> "SELECT student_id, name, major, score FROM students WHERE student_id = ? AND passwords = ?";
-            case "professor" -> "SELECT professor_id, name, major FROM professors WHERE professor_id = ? AND passwords = ?";
-            case "admin" -> "SELECT admin_id, name FROM admins WHERE admin_id = ? AND passwords = ?";
-            default -> throw new IllegalArgumentException("Invalid user type");
-        };
-    }
+    private String determineUserType(String id) {
+        if (id == null || id.trim().isEmpty()) {
+            logger.error("Empty ID provided");
+            throw new IllegalArgumentException("ID cannot be empty");
+        }
 
-    // PreparedStatement에 사용자 ID와 비밀번호를 설정하는 메서드
-    private void setQueryParameters(PreparedStatement pstmt, String id, String password, String userType) throws SQLException {
-        if (userType.equals("admin")) {
-            pstmt.setString(1, id);
+        String userType;
+        if (id.startsWith("A") && id.length() == 7) {
+            userType = "admin";
+        } else if (id.length() == 8) {
+            userType = "student";
+        } else if (id.length() == 10) {
+            userType = "professor";
         } else {
-            pstmt.setInt(1, Integer.parseInt(id));
+            logger.error("Invalid ID format: {}", id);
+            throw new IllegalArgumentException("Invalid ID format");
         }
-        pstmt.setString(2, password);
+
+        logger.debug("Determined user type: {} for ID: {}", userType, id);
+        return userType;
     }
 
-    // ResultSet에서 사용자 정보를 추출하여 Map으로 반환하는 메서드
-    private Map<String, Object> buildUserResponse(ResultSet rs, String userType) throws SQLException {
-        Map<String, Object> userDetails = new HashMap<>();
-        userDetails.put("userType", userType);
+    private String buildQuery(String userType) {
+        String query = switch (userType) {
+            case "student" ->
+                    "SELECT student_id, name, major, score FROM students " +
+                            "WHERE student_id = ? AND passwords = ?";
+            case "professor" ->
+                    "SELECT professor_id, name, major FROM professors " +
+                            "WHERE professor_id = ? AND passwords = ?";
+            case "admin" ->
+                    "SELECT admin_id, name FROM admins " +
+                            "WHERE admin_id = ? AND passwords = ?";
+            default -> {
+                logger.error("Invalid user type provided: {}", userType);
+                throw new IllegalArgumentException("Invalid user type: " + userType);
+            }
+        };
 
-        // 사용자 유형에 따라 필요한 정보를 Map에 추가
-        switch (userType) {
-            case "student" -> {
-                userDetails.put("id", rs.getInt("student_id"));
-                userDetails.put("name", rs.getString("name"));
-                userDetails.put("major", rs.getString("major"));
-                userDetails.put("score", rs.getFloat("score"));
-            }
-            case "professor" -> {
-                userDetails.put("id", rs.getInt("professor_id"));
-                userDetails.put("name", rs.getString("name"));
-                userDetails.put("major", rs.getString("major"));
-            }
-            case "admin" -> {
-                userDetails.put("id", rs.getString("admin_id"));
-                userDetails.put("name", rs.getString("name"));
-            }
+        logger.debug("Built query for user type {}: {}", userType, query);
+        return query;
+    }
+
+    public boolean testDatabaseConnection() {
+        try {
+            jdbcTemplate.queryForObject("SELECT 1", Integer.class);
+            return true;
+        } catch (DataAccessException e) {
+            logger.error("Database connection test failed", e);
+            return false;
         }
-
-        return userDetails;
     }
 }
