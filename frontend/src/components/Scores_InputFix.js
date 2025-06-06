@@ -73,12 +73,12 @@ export default function Scores_InputFix() {
             let res;
             if (searchType === "subject") {
                 res = await axiosInstance.get(
-                    `/api/enrollments/by-subject-name`,
+                    `/enrollments/by-subject-name`,
                     { params: { subject_name: query.trim() } }
                 );
             } else {
                 res = await axiosInstance.get(
-                    `/api/enrollments/by-student-name`,
+                    `/enrollments/by-student-name`,
                     { params: { student_name: query.trim() } }
                 );
             }
@@ -98,10 +98,12 @@ export default function Scores_InputFix() {
                 }))
             );
         } catch (e) {
-            if (e.response && e.response.status === 403) {
-                window.alert("권한이 없습니다. 로그인 상태와 접근 권한을 확인하세요.");
+            if (e.response && e.response.status === 401) {
+                window.alert("로그인이 필요합니다. 다시 로그인해 주세요.");
+            } else if (e.response && e.response.status === 403) {
+                window.alert("접근 권한이 없습니다. 관리자에게 문의하세요.");
             } else {
-                window.alert("검색 결과를 불러오지 못했습니다.");
+                window.alert("검색 오류가 발생했습니다.");
             }
             setResults([]);
             setScores([]);
@@ -132,7 +134,7 @@ export default function Scores_InputFix() {
         }
         try {
             await axiosInstance.post(
-                `/api/grades/fix`,
+                `/grades/fix`,
                 { scores: scoresT }
             );
             ms_save();

@@ -1,90 +1,40 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-    Container,
-    Paper,
-    Typography,
-    Button,
-    Grid,
-    styled,
-} from '@mui/material';
-import { Grade, ExitToApp } from '@mui/icons-material';
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
-const container = styled(Container)(({ theme }) => ({
-        paddingTop: theme.spacing(4),
-        paddingBottom: theme.spacing(4),
-    }))
-const paper = styled(Paper)(({ theme }) => ({
-        padding: theme.spacing(3),
-    }))
-const header = styled('div')(({ theme }) => ({
-        marginBottom: theme.spacing(4),
-    }))
-const button= styled(Button)(({ theme }) => ({
-        margin: theme.spacing(2),
-        padding: theme.spacing(2),
-        width: '300px',
-    }))
-const userInfo = styled('div')(({ theme }) => ({
-        marginBottom: theme.spacing(3),
-    }))
-
-const Professor_MainUI = () => {
+export default function Professor_MainUI() {
     const navigate = useNavigate();
-    const professorInfo = JSON.parse(localStorage.getItem('user'));
 
-    const [user, setUser] = useState(null);
+    // 로그아웃 핸들러 (세션 정리 및 메인으로 이동)
+    const handleLogout = async () => {
+        try {
+            await fetch("http://localhost:8080/api/auth/logout", {
+                method: "POST",
+                credentials: "include"
+            });
+        } catch (e) { /* 예외 무시, 어차피 이동 */ }
+        window.localStorage.clear();
+        navigate("/login");
+    };
 
-    useEffect(() => {
-        const userStr = sessionStorage.getItem('user');
-        if (userStr) {
-            setUser(JSON.parse(userStr));
-        }
-    }, []);
+    // 성적 입력/수정 페이지로 이동
+    const goToScoresInputFix = () => {
+        navigate("/professor/grade-input");
+    };
 
-    if (!user) {
-        return <div>로그인이 필요합니다.</div>;
-    }
-
-        return (
-        <container>
-            <paper>
-                <header>
-                    <Typography variant="h4" gutterBottom>
-                        교수 포털
-                    </Typography>
-                    <userInfo>
-                        <Typography variant="subtitle1" color="textSecondary">
-                            {`교수번호: ${user?.id} | 이름: ${user?.name} | 학과: ${user?.major}`}
-                        </Typography>
-                    </userInfo>
-                </header>
-
-                <Grid container direction="column" alignItems="center" spacing={2}>
-                    <Grid item>
-                        <button
-                            variant="contained"
-                            color="primary"
-                            startIcon={<Grade />}
-                            onClick={() => navigate('/professor/grade-input')}
-                        >
-                            성적 입력
-                        </button>
-                    </Grid>
-                    <Grid item>
-                        <button
-                            variant="contained"
-                            color="secondary"
-                            startIcon={<ExitToApp />}
-                            onClick={() => navigate('/login')}
-                        >
-                            로그아웃
-                        </button>
-                    </Grid>
-                </Grid>
-            </paper>
-        </container>
+    return (
+        <div style={{ padding: 32 }}>
+            <h2>교수자 메인 화면</h2>
+            <div style={{ margin: "20px 0" }}>
+                <button onClick={goToScoresInputFix} style={{ padding: "12px 24px", marginRight: 16 }}>
+                    성적 입력/수정
+                </button>
+                {/* 필요하면 다른 교수자 기능 버튼 추가 */}
+            </div>
+            <div>
+                <button onClick={handleLogout} style={{ padding: "8px 16px", background: "#eee" }}>
+                    로그아웃
+                </button>
+            </div>
+        </div>
     );
-};
-
-export default Professor_MainUI;
+}

@@ -66,6 +66,7 @@ const Login = () => {
                 id,
                 password
             }, {
+                withCredentials: true,
                 headers: {
                     'Content-Type': 'application/json'
                 }
