@@ -15,4 +15,8 @@ public class Student {
     private String major;
     private String passwords;
     private Float score;
+
+    // --- Getter methods ---
+    public Integer getStudentId() { return studentId; }
+    public String getStudentName() { return name; }
 }

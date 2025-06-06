@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Container,
@@ -8,7 +8,6 @@ import {
     Button,
     makeStyles, styled
 } from '@mui/material';
-import { School, ListAlt } from '@mui/icons-material';
 
 const container = styled(Container)(({ theme }) => ({
         paddingTop: theme.spacing(4),
@@ -32,9 +31,25 @@ const buttonIcon = styled('div')(({ theme }) => ({
         marginRight: theme.spacing(1),
 }))
 
+const user = JSON.parse(sessionStorage.getItem('user'));
+console.log(user);
+
 const Student_MainUI = () => {
     const navigate = useNavigate();
     const studentInfo = JSON.parse(localStorage.getItem('user'));
+
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        const userStr = sessionStorage.getItem('user');
+        if (userStr) {
+            setUser(JSON.parse(userStr));
+        }
+    }, []);
+
+    if (!user) {
+        return <div>로그인이 필요합니다.</div>;
+    }
 
     return (
         <container>
@@ -44,7 +59,7 @@ const Student_MainUI = () => {
                         학생 포털
                     </Typography>
                     <Typography variant="subtitle1" color="textSecondary">
-                        {`학번: ${studentInfo?.id} | 이름: ${studentInfo?.name} | 학과: ${studentInfo?.major}`}
+                        {`학번: ${user?.id} | 이름: ${user?.name} | 학과: ${user?.major}`}
                     </Typography>
                 </header>
 

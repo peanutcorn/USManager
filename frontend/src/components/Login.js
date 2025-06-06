@@ -51,7 +51,13 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        // 실제로 값이 들어오는지 체크
+        console.log('id:', id, 'password:', password);
+
+        if (!id || !password) {
+            setError('ID and password are required');
+            return;
+        }
 
         try {
             console.log('Sending login request:', { id, password }); // 디버깅용
@@ -206,8 +212,8 @@ const Login = () => {
                             label="ID"
                             name="id"
                             autoComplete="off"
-                            value={formData.id}
-                            onChange={handleChange}
+                            value={id}
+                            onChange={e => setId(e.target.value)}
                             error={!!error}
                             sx={{
                                 mb: 3,
@@ -231,8 +237,8 @@ const Login = () => {
                             name="passwords"
                             label="passwords"
                             id="passwords"
-                            value={formData.passwords}
-                            onChange={handleChange}
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
                             error={!!error}
                             autoComplete="current-passwords"
                             type={showpasswords ? "text" : "passwords"}

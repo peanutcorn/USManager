@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS scores (
     student_id INT(8) ZEROFILL,
     subject_id INT,
     major_id INT,
+    scores FLOAT,
     ranks CHAR(2),
     done_grade BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (student_id) REFERENCES students(student_id),
@@ -94,11 +95,11 @@ INSERT INTO scholarships (scholarship_name, amount) VALUES
                                                         ('국가 장학금', 2);
 
 -- 점수
-INSERT INTO scores (student_id, subject_id, major_id, ranks, done_grade) VALUES
-                                                                             (12345678, 1, 1, 'A', TRUE),
-                                                                             (12345678, 2, 1, 'B', TRUE),
-                                                                             (23456789, 3, 2, 'A', TRUE),
-                                                                             (34567890, 2, 3, 'B', TRUE);
+INSERT INTO scores (student_id, subject_id, major_id, scores, ranks, done_grade) VALUES
+                                                                             (12345678, 1, 1, 0,'A', TRUE),
+                                                                             (12345678, 2, 1, 0,'B', TRUE),
+                                                                             (23456789, 3, 2, 0,'A', TRUE),
+                                                                             (34567890, 2, 3, 0,'B', TRUE);
 
 -- 권한 부여
 GRANT ALL PRIVILEGES ON test_db.* TO 'root'@'localhost';

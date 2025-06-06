@@ -1,308 +1,243 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-    Container,
-    Paper,
-    Typography,
-    TextField,
-    Button,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Select,
-    MenuItem,
-    FormControl,
-    InputLabel,
-    styled,
-} from '@mui/material';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
-const container = styled(Container)(({ theme }) => ({
-        paddingTop: theme.spacing(4),
-        paddingBottom: theme.spacing(4),
-    }))
-const paper = styled(Paper)(({ theme }) => ({
-        padding: theme.spacing(3),
-    }))
-const searchSection = styled('div')(({ theme }) => ({
-        marginBottom: theme.spacing(4),
-        display: 'flex',
-        gap: theme.spacing(2),
-    }))
-const formControl = styled(FormControl)(({ theme }) => ({
-        minWidth: 120,
-    }))
-const currentTime = styled(Typography)(({ theme }) => ({
-        marginBottom: theme.spacing(2),
-        color: theme.palette.text.secondary,
-    }))
+// 성적 입력기간 체크(예시: 2025-06-06 ~ 2025-07-07)
+function grade_input_time() {
+    const now = new Date();
+    const start = new Date("2025-06-06T00:00:00");
+    const end = new Date("2025-07-07T23:59:59");
+    return now >= start && now <= end;
+}
 
-const GradeInput = () => {
-    const navigate = useNavigate();
-    const [currentTime, setCurrentTime] = useState('');
-    const [courseName, setCourseName] = useState('');
-    const [studentName, setStudentName] = useState('');
-    const [students, setStudents] = useState([]);
-    const [gradeData, setGradeData] = useState({});
-    const professorInfo = JSON.parse(localStorage.getItem('user'));
+// 유효성 검사 함수
+function validation_grades(scores) {
+    return scores.every(s => {
+        const score = parseFloat(s.score);
+        return (
+            !isNaN(score) && score >= 0 && score <= 100 &&
+            s.grade && s.avg !== ""
+        );
+    });
+}
 
+function Null_Calcul(scores) {
+    return scores.map(s => ({
+        ...s,
+        score: s.score === "" || s.score == null ? "0" : s.score,
+        grade: s.grade === "" || s.grade == null ? "F" : s.grade,
+        avg: s.avg === "" || s.avg == null ? "0" : s.avg,
+    }));
+}
+
+function ms_save() {
+    window.alert("성적이 저장되었습니다.");
+}
+function ms_no_time_Scoresinput() {
+    window.alert("성적 입력기간이 아닙니다.");
+    window.location.replace("/professor-main");
+}
+function ms_no_vaildation_grades() {
+    window.alert("성적 총합이 0~100점이 되게 입력해주세요.");
+}
+function ms_no_input_grade() {
+    window.alert("등급을 설정하지 않았습니다");
+}
+
+export default function Scores_InputFix() {
+    const [searchType, setSearchType] = useState("subject");
+    const [query, setQuery] = useState("");
+    const [results, setResults] = useState([]);
+    const [scores, setScores] = useState([]);
+    const [isFetched, setIsFetched] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    // 성적 입력 기간 체크
     useEffect(() => {
-        // 성적 입력 기간 확인
-        const checkGradeInputPeriod = async () => {
-            try {
-                const canInput = await grade_input_time();
-                if (!canInput) {
-                    ms_no_time_Scoresinput();
-                    navigate('/professor');
-                }
-            } catch (error) {
-                console.error('성적 입력 기간 에러:', error);
-            }
-        };
+        if (!grade_input_time()) ms_no_time_Scoresinput();
+    }, []);
 
-        checkGradeInputPeriod();
+    // CORS 및 인증 세션 포함 설정
+    const axiosInstance = axios.create({
+        baseURL: "http://localhost:8080",
+        withCredentials: true, // JSESSIONID 등 세션 쿠키 허용
+        headers: {
+            "Content-Type": "application/json"
+        }
+    });
 
-        // 현재 시간 업데이트
-        const updateTime = () => {
-            const now = new Date();
-            setCurrentTime(now.toISOString().replace('T', ' ').substring(0, 19));
-        };
-        updateTime();
-        const timer = setInterval(updateTime, 1000);
-
-        return () => clearInterval(timer);
-    }, [navigate]);
-
-    // 학생 조회 함수
+    // 조회 (과목명/학생명)
     const handleSearch = async () => {
+        setIsFetched(false);
+        setLoading(true);
         try {
-            const response = await axios.get('/api/grades/students', {
-                params: {
-                    courseName: courseName,
-                    studentName: studentName,
-                    professorId: professorInfo.id
-                }
-            });
-            setStudents(response.data);
-        } catch (error) {
-            console.error('학생 조회 에러:', error);
+            let res;
+            if (searchType === "subject") {
+                res = await axiosInstance.get(
+                    `/api/enrollments/by-subject-name`,
+                    { params: { subject_name: query.trim() } }
+                );
+            } else {
+                res = await axiosInstance.get(
+                    `/api/enrollments/by-student-name`,
+                    { params: { student_name: query.trim() } }
+                );
+            }
+            const data = res.data || [];
+            setResults(data);
+            setScores(
+                data.map(e => ({
+                    enrollment_id: e.enrollment_id,
+                    student_id: e.student_id,
+                    student_name: e.student_name,
+                    student_year: e.student_year,
+                    subject_id: e.subject_id,
+                    subject_name: e.subject_name,
+                    grade: e.grade || "",
+                    score: e.score || "",
+                    avg: e.avg || ""
+                }))
+            );
+        } catch (e) {
+            if (e.response && e.response.status === 403) {
+                window.alert("권한이 없습니다. 로그인 상태와 접근 권한을 확인하세요.");
+            } else {
+                window.alert("검색 결과를 불러오지 못했습니다.");
+            }
+            setResults([]);
+            setScores([]);
+        } finally {
+            setIsFetched(true);
+            setLoading(false);
         }
     };
 
-    // 성적 변경 핸들러
-    const handleGradeChange = (studentId, field, value) => {
-        setGradeData(prev => ({
-            ...prev,
-            [studentId]: {
-                ...prev[studentId],
-                [field]: value
-            }
-        }));
-    };
-
-    // 성적 유효성 검사 함수
-    const validation_grades = (scores) => {
-        const total = Object.values(scores).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
-        return total >= 0 && total <= 100;
-    };
-
-    // 성적이 null인 경우 0으로 변환하는 함수
-    const Null_Calcul = (scores) => {
-        return Object.fromEntries(
-            Object.entries(scores).map(([key, value]) => [key, value || 0])
+    const handleInputChange = (idx, field, value) => {
+        setScores(prev =>
+            prev.map((s, i) =>
+                i === idx ? { ...s, [field]: value } : s
+            )
         );
     };
 
-    // 성적 저장 함수
+    // 성적 저장
     const handleSave = async () => {
-        for (const studentId in gradeData) {
-            const scores = Null_Calcul(gradeData[studentId]);
-
-            if (!scores.grade) {
-                ms_no_input_grade(); // 등급이 입력되지 않은 경우
-                return;
-            }
-
-            if (!validation_grades(scores)) { // 성적 유효성 검사
-                ms_no_vaildation_grades();
-                return;
-            }
-
-            try { // 성적이 이미 입력되었는지 체크
-                const existingGrade = await axios.get(`/api/grades/${studentId}/${courseName}`);
-                if (existingGrade.data) {
-                    await grade_Fix(scores, studentId, courseName);
-                } else {
-                    await grade_Add(scores, studentId, courseName);
-                }
-            } catch (error) {
-                console.error('성적 저장 중 에러:', error);
-                return;
-            }
+        let scoresT = Null_Calcul(scores);
+        if (!scoresT.every(s => s.grade && s.score)) {
+            ms_no_input_grade();
+            return;
         }
-        ms_save();
-    };
-
-    // 성적 입력 기간 확인 함수
-    const grade_input_time = async () => {
+        if (!validation_grades(scoresT)) {
+            ms_no_vaildation_grades();
+            return;
+        }
         try {
-            const response = await axios.get('/api/grades/input-period');
-            return response.data.isInputPeriod;
-        } catch (error) {
-            console.error('성적 입력 기간 에러:', error);
-            return false;
+            await axiosInstance.post(
+                `/api/grades/fix`,
+                { scores: scoresT }
+            );
+            ms_save();
+        } catch (e) {
+            if (e.response && e.response.status === 403) {
+                window.alert("권한이 없습니다. 로그인 상태와 접근 권한을 확인하세요.");
+            } else {
+                window.alert("성적 저장에 실패했습니다.");
+            }
         }
-    };
-
-    // 성적 수정 및 추가 함수
-    const grade_Fix = async (scores, studentId, courseName) => {
-        await axios.put(`/api/grades/${studentId}/${courseName}`, scores);
-    };
-
-    // 성적 추가 함수
-    const grade_Add = async (scores, studentId, courseName) => {
-        await axios.post('/api/grades', {
-            studentId,
-            courseName,
-            ...scores
-        });
-    };
-
-    // 알림 함수들
-    const ms_save = () => {
-        alert('성적이 성공적으로 저장되었습니다.');
-    };
-
-    const ms_no_time_Scoresinput = () => {
-        alert('성적 입력 기간이 아닙니다.');
-    };
-
-    const ms_no_vaildation_grades = () => {
-        alert('성적 총합이 0~100점이 되게 입력해주세요.');
-    };
-
-    const ms_no_input_grade = () => {
-        alert('등급을 설정하지 않았습니다.');
     };
 
     return (
-        <container>
-            <paper>
-                <Typography variant="h5" gutterBottom>
-                    성적 입력
-                </Typography>
-
-                <currentTime>
-                    Current Time (UTC): {currentTime}
-                </currentTime>
-
-                <searchSection>
-                    <TextField
-                        label="강좌명"
-                        value={courseName}
-                        onChange={(e) => setCourseName(e.target.value)}
-                    />
-                    <TextField
-                        label="학생 이름"
-                        value={studentName}
-                        onChange={(e) => setStudentName(e.target.value)}
-                    />
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={handleSearch}
-                    >
-                        조회
-                    </Button>
-                </searchSection>
-
-                <TableContainer>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>학번</TableCell>
-                                <TableCell>이름</TableCell>
-                                <TableCell>학년</TableCell>
-                                <TableCell>중간고사</TableCell>
-                                <TableCell>기말고사</TableCell>
-                                <TableCell>과제</TableCell>
-                                <TableCell>출석</TableCell>
-                                <TableCell>등급</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {students.map((student) => (
-                                <TableRow key={student.id}>
-                                    <TableCell>{student.id}</TableCell>
-                                    <TableCell>{student.name}</TableCell>
-                                    <TableCell>{student.year}</TableCell>
-                                    <TableCell>
-                                        <TextField
-                                            type="number"
-                                            inputProps={{ min: 0, max: 100 }}
-                                            value={gradeData[student.id]?.midterm || ''}
-                                            onChange={(e) => handleGradeChange(student.id, 'midterm', e.target.value)}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <TextField
-                                            type="number"
-                                            inputProps={{ min: 0, max: 100 }}
-                                            value={gradeData[student.id]?.final || ''}
-                                            onChange={(e) => handleGradeChange(student.id, 'final', e.target.value)}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <TextField
-                                            type="number"
-                                            inputProps={{ min: 0, max: 100 }}
-                                            value={gradeData[student.id]?.assignment || ''}
-                                            onChange={(e) => handleGradeChange(student.id, 'assignment', e.target.value)}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <TextField
-                                            type="number"
-                                            inputProps={{ min: 0, max: 100 }}
-                                            value={gradeData[student.id]?.attendance || ''}
-                                            onChange={(e) => handleGradeChange(student.id, 'attendance', e.target.value)}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <formControl>
-                                            <InputLabel>등급</InputLabel>
-                                            <Select
-                                                value={gradeData[student.id]?.grade || ''}
-                                                onChange={(e) => handleGradeChange(student.id, 'grade', e.target.value)}
-                                            >
-                                                {['A+', 'A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'F'].map((grade) => (
-                                                    <MenuItem key={grade} value={grade}>
-                                                        {grade}
-                                                    </MenuItem>
-                                                ))}
-                                            </Select>
-                                        </formControl>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleSave}
-                    style={{ marginTop: '20px' }}
+        <div style={{ padding: "24px" }}>
+            <h2>성적 입력</h2>
+            <div style={{ marginBottom: 12 }}>
+                <select
+                    value={searchType}
+                    onChange={e => setSearchType(e.target.value)}
                 >
-                    성적 저장
-                </Button>
-            </paper>
-        </container>
+                    <option value="subject">과목명으로 조회</option>
+                    <option value="student">학생명으로 조회</option>
+                </select>
+                <input
+                    style={{ marginLeft: 8, marginRight: 8 }}
+                    placeholder={searchType === "subject" ? "과목명 입력" : "학생명 입력"}
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    onKeyDown={e => {
+                        if (e.key === "Enter") handleSearch();
+                    }}
+                />
+                <button onClick={handleSearch} disabled={loading}>
+                    {loading ? "조회 중..." : "조회"}
+                </button>
+            </div>
+            {isFetched && results.length === 0 && (
+                <div>검색 결과가 없습니다.</div>
+            )}
+            {isFetched && results.length > 0 && (
+                <table border={1} cellPadding={6} style={{ minWidth: 600 }}>
+                    <thead>
+                    <tr>
+                        <th>과목ID</th>
+                        <th>과목명</th>
+                        <th>학번</th>
+                        <th>이름</th>
+                        <th>학년</th>
+                        <th>성적(점수)</th>
+                        <th>등급(A~F)</th>
+                        <th>평점(4.5기준)</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {scores.map((s, idx) => (
+                        <tr key={s.enrollment_id}>
+                            <td>{s.subject_id}</td>
+                            <td>{s.subject_name}</td>
+                            <td>{String(s.student_id).padStart(8, '0')}</td>
+                            <td>{s.student_name}</td>
+                            <td>{s.student_year}</td>
+                            <td>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    value={s.score}
+                                    onChange={e => handleInputChange(idx, "score", e.target.value)}
+                                    style={{ width: 60 }}
+                                />
+                            </td>
+                            <td>
+                                <select
+                                    value={s.grade}
+                                    onChange={e => handleInputChange(idx, "grade", e.target.value)}
+                                >
+                                    <option value="">등급</option>
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                    <option value="D">D</option>
+                                    <option value="F">F</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    min={0}
+                                    max={4.5}
+                                    value={s.avg}
+                                    onChange={e => handleInputChange(idx, "avg", e.target.value)}
+                                    style={{ width: 50 }}
+                                />
+                            </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+            )}
+            {isFetched && results.length > 0 && (
+                <div style={{ marginTop: 16, textAlign: "right" }}>
+                    <button onClick={handleSave}>성적 저장</button>
+                </div>
+            )}
+        </div>
     );
-};
-
-export default GradeInput;
+}

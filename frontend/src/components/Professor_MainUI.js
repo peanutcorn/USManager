@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Container,
@@ -33,7 +33,20 @@ const Professor_MainUI = () => {
     const navigate = useNavigate();
     const professorInfo = JSON.parse(localStorage.getItem('user'));
 
-    return (
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        const userStr = sessionStorage.getItem('user');
+        if (userStr) {
+            setUser(JSON.parse(userStr));
+        }
+    }, []);
+
+    if (!user) {
+        return <div>로그인이 필요합니다.</div>;
+    }
+
+        return (
         <container>
             <paper>
                 <header>
@@ -42,7 +55,7 @@ const Professor_MainUI = () => {
                     </Typography>
                     <userInfo>
                         <Typography variant="subtitle1" color="textSecondary">
-                            {`교수번호: ${professorInfo?.id} | 이름: ${professorInfo?.name} | 학과: ${professorInfo?.major}`}
+                            {`교수번호: ${user?.id} | 이름: ${user?.name} | 학과: ${user?.major}`}
                         </Typography>
                     </userInfo>
                 </header>

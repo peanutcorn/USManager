@@ -1,5 +1,6 @@
 package com.univm.controller;
 
+import com.univm.dto.LoginRequest;
 import com.univm.service.AuthService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,10 +30,19 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/auth/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        String id = loginRequest.id;
+        String password = loginRequest.password;
+
+        logger.debug("LoginRequest: id={}, password={}", id, password);
+
+        if (id == null || id.trim().isEmpty() || password == null || password.trim().isEmpty()) {
+            return ResponseEntity.ok(Map.of(
+                    "success", false,
+                    "message", "ID and password are required"
+            ));
+        }
         try {
-            String id = loginRequest.get("id");
-            String password = loginRequest.get("password");
 
             logger.debug("Received login request with ID: {}", id);
 
@@ -70,7 +80,7 @@ public class AuthController {
             }
 
         } catch (Exception e) {
-            logger.error("Login error for ID: {}", loginRequest.get("id"), e);
+            logger.error("Login error for ID: {}", loginRequest.id, e);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", false);
