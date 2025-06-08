@@ -9,8 +9,19 @@ import java.util.Map;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:3000")
-@RequestMapping("/api/registered-courses") // API 엔드포인트를 정의하는 컨트롤러 클래스
+@RequestMapping("api/student")
+@CrossOrigin(
+        origins = "http://localhost:3000",
+        allowedHeaders = "*",
+        allowCredentials = "true",
+        methods = {
+                RequestMethod.GET,
+                RequestMethod.POST,
+                RequestMethod.PUT,
+                RequestMethod.DELETE,
+                RequestMethod.OPTIONS
+        }
+)
 public class RegisteredCoursesController {
 
     // 수강신청 서비스 클래스 주입

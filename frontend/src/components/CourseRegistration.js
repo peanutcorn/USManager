@@ -1,214 +1,173 @@
-import React, { useState, useEffect } from 'react';
-import {
-    Container,
-    Paper,
-    TextField,
-    Button,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Typography,
-    styled,
-} from '@mui/material';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 
-const container = styled(Container)(({ theme }) => ({
-        paddingTop: theme.spacing(4),
-        paddingBottom: theme.spacing(4)
-    }));
-const paper = styled(Paper)(({ theme }) => ({
-        padding: theme.spacing(3),
-    }));
-const searchSection = styled('div')(({ theme }) => ({
-        marginBottom: theme.spacing(4),
-    }));
-const button = styled(Button)(({ theme }) => ({
-        margin: theme.spacing(1),
-    }));
-const tableContainer = styled(TableContainer)(({ theme }) => ({
-        marginTop: theme.spacing(3),
-    }));
+// 인원 초과 알림
+function ms_Studendexceed() {
+    window.alert("수강 인원이 초과되었습니다. 다른 과목을 선택하세요.");
+}
 
-const CourseRegistration = () => {
-    const [majorSearch, setMajorSearch] = useState('');
-    const [subjectSearch, setSubjectSearch] = useState('');
-    const [courses, setCourses] = useState([]);
-    const [selectedCourses, setSelectedCourses] = useState([]);
-    const studentInfo = JSON.parse(localStorage.getItem('user'));
+// 수강신청 완료 알림
+function ms_ConfirmRegisterSubject() {
+    window.alert("수강신청이 완료되었습니다.");
+}
 
-    const handleSearchMajor = async () => {
-        try {
-            const response = await axios.post('/api/courses/search-major', {
-                major: majorSearch
+// 최대 수강 인원 체크 함수 (수강 인원 >= 최대 인원수면 true)
+function MAX_STU(currentCount, maxCount) {
+    return currentCount >= maxCount;
+}
+
+// 중복 신청 확인 함수 (이미 신청한 과목인지)
+function same_subject(enrollments, subjectId) {
+    return enrollments.some(e => e.subject_id === subjectId);
+}
+
+// 학생의 수강신청 내역+과목조회
+// 반환: [{ subject_id, subject_name, professor_name, department_name, current_count, max_count, ... }]
+async function search_subID_StudentID_list(studentId, filterType = "", filterValue = "") {
+    // 서버에서는 studentId별 신청내역과 과목목록, 검색필터(학과/강의명) 지원
+    let url = `http://localhost:8080/api/student/${studentId}/course-registration-list`;
+    if (filterType && filterValue) {
+        url += `?filterType=${filterType}&filterValue=${encodeURIComponent(filterValue)}`;
+    }
+    const res = await axios.get(url, { withCredentials: true });
+    return res.data; // { subjects: [ ... ], enrollments: [ ... ] }
+}
+
+export default function CourseRegistration({ studentId }) {
+    const [subjectList, setSubjectList] = useState([]);
+    const [enrollments, setEnrollments] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [searchType, setSearchType] = useState("major");
+    const [searchValue, setSearchValue] = useState("");
+    const [data, setData] = useState(null);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        axios.get(`/api/student/${studentId}/course-registration-list`)
+            .then(res => {
+                setData(res.data);
+                setLoading(false);
+            })
+            .catch(err => {
+                setError('수강신청 데이터를 불러오지 못했습니다.');
+                setLoading(false);
             });
-            setCourses(response.data);
-        } catch (error) {
-            console.error('학과 검색 에러:', error);
+    }, [studentId]);
+
+    if (loading) return <div>로딩중...</div>;
+    if (error) return <div>{error}</div>;
+
+    // 과목+신청내역 조회
+    const fetchSubjectsAndEnrollments = async (filterType = "", filterValue = "") => {
+        setLoading(true);
+        try {
+            const data = await search_subID_StudentID_list(studentId, filterType, filterValue);
+            setSubjectList(data.subjects || []);
+            setEnrollments(data.enrollments || []);
+        } catch (e) {
+            window.alert("수강신청 데이터를 불러오지 못했습니다.");
+            setSubjectList([]);
+            setEnrollments([]);
+        } finally {
+            setLoading(false);
         }
     };
 
-    // 강의명 검색
-    const handleSearchSubjects = async () => {
-        try {
-            const response = await axios.post('/api/courses/search-subjects', {
-                subject: subjectSearch
-            });
-            setCourses(response.data);
-        } catch (error) {
-            console.error('검색 에러:', error);
+    // 검색 버튼 클릭
+    const handleSearch = () => {
+        fetchSubjectsAndEnrollments(searchType, searchValue.trim());
+    };
+
+    // 수강신청 버튼 클릭
+    const handleRegister = async subject => {
+        // 중복 신청 체크
+        if (same_subject(enrollments, subject.subject_id)) {
+            window.alert("이미 신청한 과목입니다.");
+            return;
         }
-    };
-
-    // 수강신청 처리 함수
-    const handleRegisterSubject = async (courseId) => {
-        try {
-            // 학생이 이미 수강신청 했다면
-            if (await same_subject(courseId, studentInfo.id)) {
-                alert('이미 수강신청한 강좌입니다.');
-                return;
-            }
-
-            // 수강인원이 초과되었는지 확인
-            if (await MAX_STU(courseId)) {
-                ms_Studendexceed();
-                return;
-            }
-
-            // 수강신청 요청
-            const response = await axios.post('/api/courses/register', {
-                studentId: studentInfo.id,
-                courseId: courseId
-            });
-
-            if (response.data.success) {
-                ms_ConfirmRegisterSubject();
-                // 수강신청 후 신청 목록 갱신
-                const updatedList = await search_subID_StudentID_list(studentInfo.id);
-                setSelectedCourses(updatedList);
-            }
-        } catch (error) {
-            console.error('수강 신청 에러:', error);
+        // 인원 초과 체크
+        if (MAX_STU(subject.current_count, subject.max_count)) {
+            ms_Studendexceed();
+            return;
         }
-    };
-
-    // 신청 강의 패칭 함수
-    const search_subID_StudentID_list = async (studentId) => {
+        // 수강신청 요청
         try {
-            const response = await axios.get(`/api/courses/registered/${studentId}`);
-            return response.data;
-        } catch (error) {
-            console.error('신청 강의 패칭 에러:', error);
-            return [];
-        }
-    };
-
-    // 알림 함수들
-    const ms_Studendexceed = () => {
-        alert('수강신청 인원이 초과되었습니다.');
-    };
-
-    const ms_ConfirmRegisterSubject = () => {
-        alert('수강신청이 완료되었습니다.');
-    };
-
-    // 인원초과 체크 함수
-    const MAX_STU = async (courseId) => {
-        try {
-            const response = await axios.get(`/api/courses/check-capacity/${courseId}`);
-            return response.data.isExceeded;
-        } catch (error) {
-            console.error('신청목록 인원 초과 에러:', error);
-            return true;
-        }
-    };
-
-    const same_subject = async (courseId, studentId) => {
-        try {
-            const response = await axios.get(`/api/courses/check-duplicate/${courseId}/${studentId}`);
-            return response.data.isDuplicate;
-        } catch (error) {
-            console.error('듀플리케이트가 나네:', error);
-            return true;
+            await axios.post(
+                "http://localhost:8080/api/student/course-registration",
+                {
+                    student_id: studentId,
+                    subject_id: subject.subject_id
+                },
+                { withCredentials: true }
+            );
+            ms_ConfirmRegisterSubject();
+            // 최신 데이터로 갱신
+            fetchSubjectsAndEnrollments(searchType, searchValue.trim());
+        } catch (e) {
+            window.alert("수강신청에 실패했습니다.");
         }
     };
 
     return (
-        <container>
-            <paper>
-                <Typography variant="h5" gutterBottom>
-                    수강신청
-                </Typography>
-
-                <searchSection>
-                    <TextField
-                        label="학과 검색"
-                        value={majorSearch}
-                        onChange={(e) => setMajorSearch(e.target.value)}
-                        margin="normal"
-                    />
-                    <button
-                        variant="contained"
-                        color="primary"
-                        onClick={handleSearchMajor}
-                    >
-                        학과 검색
-                    </button>
-
-                    <TextField
-                        label="강의명 검색"
-                        value={subjectSearch}
-                        onChange={(e) => setSubjectSearch(e.target.value)}
-                        margin="normal"
-                    />
-                    <button
-                        variant="contained"
-                        color="primary"
-                        onClick={handleSearchSubjects}
-                    >
-                        강의명 검색
-                    </button>
-                </searchSection>
-
-                <tableContainer>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>과목코드</TableCell>
-                                <TableCell>과목명</TableCell>
-                                <TableCell>담당교수</TableCell>
-                                <TableCell>학과</TableCell>
-                                <TableCell>수강인원</TableCell>
-                                <TableCell>액션</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {courses.map((course) => (
-                                <TableRow key={course.id}>
-                                    <TableCell>{course.id}</TableCell>
-                                    <TableCell>{course.name}</TableCell>
-                                    <TableCell>{course.professor}</TableCell>
-                                    <TableCell>{course.major}</TableCell>
-                                    <TableCell>{course.currentStudents}/{course.maxStudents}</TableCell>
-                                    <TableCell>
-                                        <Button
-                                            variant="contained"
-                                            color="primary"
-                                            onClick={() => handleRegisterSubject(course.id)}
-                                        >
-                                            수강신청
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </tableContainer>
-            </paper>
-        </container>
+        <div style={{ padding: 24 }}>
+            <h2>수강신청</h2>
+            <div style={{ marginBottom: 16 }}>
+                <select
+                    value={searchType}
+                    onChange={e => setSearchType(e.target.value)}
+                    style={{ marginRight: 8 }}
+                >
+                    <option value="major">학과로 검색</option>
+                    <option value="subject">과목명으로 검색</option>
+                </select>
+                <input
+                    placeholder={searchType === "major" ? "학과명 입력" : "과목명 입력"}
+                    value={searchValue}
+                    onChange={e => setSearchValue(e.target.value)}
+                    style={{ marginRight: 8 }}
+                />
+                <button onClick={handleSearch}>검색</button>
+            </div>
+            {loading ? (
+                <div>로딩 중...</div>
+            ) : (
+                <table border={1} cellPadding={8} style={{ minWidth: 800 }}>
+                    <thead>
+                    <tr>
+                        <th>과목ID</th>
+                        <th>과목명</th>
+                        <th>교수명</th>
+                        <th>학과</th>
+                        <th>현재 인원</th>
+                        <th>최대 인원</th>
+                        <th>신청</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {subjectList.map(subject => (
+                        <tr key={subject.subject_id}>
+                            <td>{subject.subject_id}</td>
+                            <td>{subject.subject_name}</td>
+                            <td>{subject.professor_name}</td>
+                            <td>{subject.department_name}</td>
+                            <td>{subject.current_count}</td>
+                            <td>{subject.max_count}</td>
+                            <td>
+                                {same_subject(enrollments, subject.subject_id) ? (
+                                    <span>신청됨</span>
+                                ) : MAX_STU(subject.current_count, subject.max_count) ? (
+                                    <span style={{ color: "red" }}>마감</span>
+                                ) : (
+                                    <button onClick={() => handleRegister(subject)}>
+                                        신청
+                                    </button>
+                                )}
+                            </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+            )}
+        </div>
     );
-};
-
-export default CourseRegistration;
+}

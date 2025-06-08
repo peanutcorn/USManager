@@ -15,7 +15,7 @@ const App = () => { // 메인 앱 컴포넌트
                 <Route path="/login" element={<Login />} />
                 {/* eslint-disable-next-line react/jsx-pascal-case */}
                 <Route path="/student" element={<Student_MainUI />} />
-                <Route path="/course-registration" element={<CourseRegistration />} />
+                <Route path="/student/course-registration" element={<CourseRegistration />} />
                 <Route path="/student/registered-courses" element={<RegisteredCourses />} />
                 <Route path="/student/confirmed-courses" element={<ConfirmedCourses />} />
                 {/* eslint-disable-next-line react/jsx-pascal-case */}

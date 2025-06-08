@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import {
     Container,
     Grid,
@@ -31,25 +32,29 @@ const buttonIcon = styled('div')(({ theme }) => ({
         marginRight: theme.spacing(1),
 }))
 
-const user = JSON.parse(sessionStorage.getItem('user'));
-console.log(user);
-
 const Student_MainUI = () => {
     const navigate = useNavigate();
-    const studentInfo = JSON.parse(localStorage.getItem('user'));
-
-    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [studentInfo, setStudentInfo] = useState(null);
 
     useEffect(() => {
-        const userStr = sessionStorage.getItem('user');
-        if (userStr) {
-            setUser(JSON.parse(userStr));
-        }
-    }, []);
+        axios.get('/api/auth/check', { withCredentials: true })
+            .then(res => {
+                if (res.data.role !== "student") {
+                    alert('학생 권한만 접근 가능합니다.');
+                    navigate('/login');
+                } else {
+                    setStudentInfo(res.data);
+                    setLoading(false);
+                }
+            })
+            .catch(() => {
+                alert('로그인이 필요합니다.');
+                navigate('/login');
+            });
+    }, [navigate]);
 
-    if (!user) {
-        return <div>로그인이 필요합니다.</div>;
-    }
+    if (loading) return <div>로딩중...</div>;
 
     return (
         <container>
@@ -59,7 +64,7 @@ const Student_MainUI = () => {
                         학생 포털
                     </Typography>
                     <Typography variant="subtitle1" color="textSecondary">
-                        {`학번: ${user?.id} | 이름: ${user?.name} | 학과: ${user?.major}`}
+                        {`학번: ${studentInfo.id} | 이름: ${studentInfo.name} | 학과: ${studentInfo.major}`}
                     </Typography>
                 </header>
 
@@ -68,7 +73,7 @@ const Student_MainUI = () => {
                         <button
                             variant="contained"
                             color="primary"
-                            onClick={() => navigate('/course-registration')}
+                            onClick={() => navigate('/student/course-registration')}
                             startIcon={<buttonIcon/>}
                         >
                             수강신청
@@ -78,7 +83,7 @@ const Student_MainUI = () => {
                         <button
                             variant="contained"
                             color="secondary"
-                            onClick={() => navigate('/registered-courses')}
+                            onClick={() => navigate('/student/registered-courses')}
                             startIcon={<buttonIcon/>}
                         >
                             수강신청 확정목록 조회

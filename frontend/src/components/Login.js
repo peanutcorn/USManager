@@ -1,5 +1,5 @@
 import logoImg from '../assets/loginStudent.png';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -11,114 +11,141 @@ import {
     InputAdornment,
     TextField,
     Typography,
+    Alert,
+    CircularProgress,
 } from "@mui/material";
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-// axios 기본 설정을 분리된 파일로 이동
+// axios 기본 설정
 const API_BASE_URL = 'http://localhost:8080';
-
 axios.defaults.baseURL = API_BASE_URL;
-axios.defaults.withCredentials = true;
-axios.defaults.headers.common['Access-Control-Allow-Origin'] = 'http://localhost:3000';
+
+// 세션 관리 유틸리티
+const SessionManager = {
+    setSession: (sessionId, userData) => {
+        localStorage.setItem('sessionId', sessionId);
+        localStorage.setItem('userData', JSON.stringify(userData));
+        // axios 기본 헤더에 세션 ID 설정
+        axios.defaults.headers.common['Authorization'] = `Bearer ${sessionId}`;
+    },
+
+    getSession: () => {
+        const sessionId = localStorage.getItem('sessionId');
+        const userData = localStorage.getItem('userData');
+        return {
+            sessionId,
+            userData: userData ? JSON.parse(userData) : null
+        };
+    },
+
+    clearSession: () => {
+        localStorage.removeItem('sessionId');
+        localStorage.removeItem('userData');
+        delete axios.defaults.headers.common['Authorization'];
+    },
+
+    isLoggedIn: () => {
+        return !!localStorage.getItem('sessionId');
+    }
+};
 
 // 로그인 컴포넌트
 const Login = () => {
     const [id, setId] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({ // 초기 상태 설정
-        id: '',
-        passwords: ''
-    });
-    const [error, setError] = useState(''); // 에러 메시지 상태
-    const [loading, setLoading] = useState(false); // 로딩 상태
 
-    const [showpasswords, setShowpasswords] = useState(false);
+    // 컴포넌트 마운트 시 이미 로그인되어 있는지 확인
+    useEffect(() => {
+        if (SessionManager.isLoggedIn()) {
+            const { userData } = SessionManager.getSession();
+            if (userData && userData.role) {
+                redirectToUserPage(userData.role);
+            }
+        }
+    }, []);
 
-    const handleClickShowpasswords = () => {
-        setShowpasswords(!showpasswords);
+    const handleClickShowPassword = () => {
+        setShowPassword(!showPassword);
     };
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prevState => ({
-            ...prevState,
-            [name]: value
-        }));
-        if (error) setError('');
+    const redirectToUserPage = (role) => {
+        switch (role) {
+            case "student":
+                navigate('/student');
+                break;
+            case "professor":
+                navigate('/professor');
+                break;
+            case "admin":
+                navigate('/admin');
+                break;
+            default:
+                setError("알 수 없는 사용자 유형입니다.");
+        }
     };
 
-
-    const handleSubmit = async (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        // 실제로 값이 들어오는지 체크
-        console.log('id:', id, 'password:', password);
 
-        if (!id || !password) {
-            setError('ID and password are required');
+        // 입력값 검증
+        if (!id.trim() || !password.trim()) {
+            setError('ID와 비밀번호를 모두 입력해주세요.');
             return;
         }
 
-        try {
-            console.log('Sending login request:', { id, password }); // 디버깅용
+        setLoading(true);
+        setError('');
 
-            const response = await axios.post('http://localhost:8080/auth/login', {
-                id,
-                password
+        try {
+            const response = await axios.post('/api/auth/login', {
+                id: id.trim(),
+                password: password.trim()
             }, {
-                withCredentials: true,
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
 
-            console.log('Login response:', response.data); // 디버깅용
+            if (response.data.success && response.data.sessionId) {
+                // 세션 정보 저장
+                SessionManager.setSession(response.data.sessionId, {
+                    role: response.data.role,
+                    name: response.data.name,
+                    studentId: response.data.studentId,
+                    professorId: response.data.professorId,
+                    adminId: response.data.adminId
+                });
 
-            // 응답 구조 확인
-            if (response.data.success) {
-                // 로그인 성공
-                const userData = response.data.user;
-                console.log('Login successful:', userData);
-
-                // 세션에 사용자 정보 저장
-                sessionStorage.setItem('user', JSON.stringify(userData));
-                sessionStorage.setItem('isLoggedIn', 'true');
-                sessionStorage.setItem('userRole', response.data.role);
-
-                // 사용자 유형에 따른 리다이렉션
-                switch (response.data.role) {
-                    case 'student':
-                        navigate('/student');
-                        break;
-                    case 'professor':
-                        navigate('/professor');
-                        break;
-                    case 'admin':
-                        navigate('/admin');
-                        break;
-                    default:
-                        navigate('/');
-                }
+                // 성공 메시지 표시 후 페이지 이동
+                console.log(`${response.data.name}님 로그인 성공`);
+                redirectToUserPage(response.data.role);
             } else {
-                // 로그인 실패
-                console.error('Login failed:', response.data.message);
-                setError(response.data.message || 'Login failed. Please check your credentials.');
+                setError('로그인에 실패했습니다.');
             }
-        } catch (error) {
-            console.error('Login error:', error);
+        } catch (err) {
+            console.error('Login error:', err);
 
-            // 에러 응답 구조 확인
-            if (error.response) {
-                console.error('Error response:', error.response.data);
-                setError(error.response.data.message || 'Login failed. Please try again.');
-            } else if (error.request) {
-                console.error('Error request:', error.request);
-                setError('Network error. Please check your connection.');
+            if (err.response?.data?.error) {
+                setError(err.response.data.error);
+            } else if (err.response?.status === 500) {
+                setError('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+            } else if (err.code === 'NETWORK_ERROR') {
+                setError('네트워크 연결을 확인해주세요.');
             } else {
-                console.error('Error message:', error.message);
-                setError('An unexpected error occurred.');
+                setError('로그인 중 알 수 없는 오류가 발생했습니다.');
             }
+        } finally {
+            setLoading(false);
         }
+    };
+
+    const handleInputChange = (setter) => (e) => {
+        setter(e.target.value);
+        if (error) setError(''); // 입력 시 에러 메시지 클리어
     };
 
     return (
@@ -128,6 +155,7 @@ const Login = () => {
                 display: "flex",
                 justifyContent: "center",
                 width: "100%",
+                minHeight: "100vh",
             }}
         >
             <Container
@@ -191,7 +219,7 @@ const Login = () => {
                     sx={{
                         position: "absolute",
                         width: "371px",
-                        height: "377px",
+                        minHeight: "377px",
                         top: "174px",
                         left: "892px",
                     }}
@@ -205,17 +233,19 @@ const Login = () => {
                     >
                         로그인
                     </Typography>
-                    <form onSubmit={handleSubmit} noValidate>
+
+                    <form onSubmit={handleLogin}>
                         <TextField
                             fullWidth
-                            placeholder="학번"
+                            placeholder="학번 또는 ID"
                             id="id"
                             label="ID"
                             name="id"
-                            autoComplete="off"
+                            autoComplete="username"
                             value={id}
-                            onChange={e => setId(e.target.value)}
+                            onChange={handleInputChange(setId)}
                             error={!!error}
+                            disabled={loading}
                             sx={{
                                 mb: 3,
                                 "& .MuiOutlinedInput-root": {
@@ -224,6 +254,12 @@ const Login = () => {
                                     borderRadius: "8px",
                                     "& fieldset": {
                                         borderColor: "transparent",
+                                    },
+                                    "&:hover fieldset": {
+                                        borderColor: "#4d47c3",
+                                    },
+                                    "&.Mui-focused fieldset": {
+                                        borderColor: "#4d47c3",
                                     },
                                 },
                                 "& .MuiInputBase-input::placeholder": {
@@ -235,23 +271,30 @@ const Login = () => {
 
                         <TextField
                             fullWidth
-                            name="passwords"
-                            label="passwords"
-                            id="passwords"
+                            name="password"
+                            label="비밀번호"
+                            id="password"
                             value={password}
-                            onChange={e => setPassword(e.target.value)}
+                            onChange={handleInputChange(setPassword)}
                             error={!!error}
-                            autoComplete="current-passwords"
-                            type={showpasswords ? "text" : "passwords"}
+                            disabled={loading}
+                            autoComplete="current-password"
+                            type={showPassword ? "text" : "password"}
                             placeholder="비밀번호"
                             sx={{
-                                mb: 5,
+                                mb: 3,
                                 "& .MuiOutlinedInput-root": {
                                     height: "62px",
                                     bgcolor: "#efefff",
                                     borderRadius: "8px",
                                     "& fieldset": {
                                         borderColor: "transparent",
+                                    },
+                                    "&:hover fieldset": {
+                                        borderColor: "#4d47c3",
+                                    },
+                                    "&.Mui-focused fieldset": {
+                                        borderColor: "#4d47c3",
                                     },
                                 },
                                 "& .MuiInputBase-input::placeholder": {
@@ -262,34 +305,49 @@ const Login = () => {
                             InputProps={{
                                 endAdornment: (
                                     <InputAdornment position="end">
-                                        <IconButton onClick={handleClickShowpasswords} edge="end">
-                                            {showpasswords ? <VisibilityOff /> : <Visibility />}
+                                        <IconButton
+                                            onClick={handleClickShowPassword}
+                                            edge="end"
+                                            disabled={loading}
+                                            aria-label="toggle password visibility"
+                                        >
+                                            {showPassword ? <VisibilityOff /> : <Visibility />}
                                         </IconButton>
                                     </InputAdornment>
                                 ),
                             }}
                         />
+
                         {error && (
-                            <Typography variant="body2">
+                            <Alert severity="error" sx={{ mb: 3 }}>
                                 {error}
-                            </Typography>
+                            </Alert>
                         )}
-                    <Button
-                        type="submit"
-                        fullWidth
-                        variant="contained"
-                        sx={{
-                            height: "59px",
-                            bgcolor: "#4d47c3",
-                            borderRadius: "9px",
-                            boxShadow: "0px 4px 61px rgba(77, 71, 195, 0.4)",
-                            "&:hover": {
-                                bgcolor: "#3f3ba3",
-                            },
-                        }}
-                    >
-                        로그인
-                    </Button>
+
+                        <Button
+                            type="submit"
+                            fullWidth
+                            variant="contained"
+                            disabled={loading || !id.trim() || !password.trim()}
+                            sx={{
+                                height: "59px",
+                                bgcolor: "#4d47c3",
+                                borderRadius: "9px",
+                                boxShadow: "0px 4px 61px rgba(77, 71, 195, 0.4)",
+                                "&:hover": {
+                                    bgcolor: "#3f3ba3",
+                                },
+                                "&:disabled": {
+                                    bgcolor: "#cccccc",
+                                },
+                            }}
+                        >
+                            {loading ? (
+                                <CircularProgress size={24} color="inherit" />
+                            ) : (
+                                "로그인"
+                            )}
+                        </Button>
                     </form>
                 </Box>
             </Container>
@@ -297,4 +355,6 @@ const Login = () => {
     );
 };
 
+// SessionManager를 전역에서 사용할 수 있도록 export
+export { SessionManager };
 export default Login;

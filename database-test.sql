@@ -5,60 +5,61 @@ USE test_db;
 
 -- 테이블
 CREATE TABLE IF NOT EXISTS students (
-    student_id INT(8) ZEROFILL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,
-    major VARCHAR(100),
-    passwords VARCHAR(100) NOT NULL,
-    score FLOAT DEFAULT 0.0
-    );
+                                        student_id INT(8) ZEROFILL PRIMARY KEY,
+                                        name VARCHAR(50) NOT NULL,
+                                        major VARCHAR(100),
+                                        passwords VARCHAR(100) NOT NULL,
+                                        score FLOAT DEFAULT 0.0
+);
 
 CREATE TABLE IF NOT EXISTS professors (
-    professor_id INT(10) ZEROFILL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,
-    major VARCHAR(100),
-    passwords VARCHAR(100) NOT NULL
-    );
+                                          professor_id INT(10) ZEROFILL PRIMARY KEY,
+                                          name VARCHAR(50) NOT NULL,
+                                          major VARCHAR(100),
+                                          passwords VARCHAR(100) NOT NULL
+);
 
 CREATE TABLE admins (
-    admin_id VARCHAR(7) PRIMARY KEY,  -- A + 6자리 정수
-    name VARCHAR(50) NOT NULL,
-    passwords VARCHAR(100) NOT NULL,
-    CONSTRAINT check_admin_id CHECK (admin_id REGEXP '^A[0-9]{6}$')  -- 검사해용
+                        admin_id VARCHAR(7) PRIMARY KEY,  -- A + 6자리 정수
+                        name VARCHAR(50) NOT NULL,
+                        passwords VARCHAR(100) NOT NULL,
+                        CONSTRAINT check_admin_id CHECK (admin_id REGEXP '^A[0-9]{6}$')
 );
 
 CREATE TABLE IF NOT EXISTS subjects (
-    subject_id INT AUTO_INCREMENT PRIMARY KEY,
-    subject_name VARCHAR(100) NOT NULL,
-    professor_id INT(10) ZEROFILL,
-    major VARCHAR(50),
-    FOREIGN KEY (professor_id) REFERENCES professors(professor_id)
-    );
+                                        subject_id INT AUTO_INCREMENT PRIMARY KEY,
+                                        subject_name VARCHAR(100) NOT NULL,
+                                        professor_id INT(10) ZEROFILL,
+                                        major VARCHAR(50),
+                                        max_count INT, -- 최대 수강 인원 추가
+                                        FOREIGN KEY (professor_id) REFERENCES professors(professor_id)
+);
 
 CREATE TABLE IF NOT EXISTS enrollments (
-    enrollment_id INT AUTO_INCREMENT PRIMARY KEY,
-    student_id INT(8) ZEROFILL,
-    subject_id INT,
-    FOREIGN KEY (student_id) REFERENCES students(student_id),
-    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id)
-    );
+                                           enrollment_id INT AUTO_INCREMENT PRIMARY KEY,
+                                           student_id INT(8) ZEROFILL,
+                                           subject_id INT,
+                                           FOREIGN KEY (student_id) REFERENCES students(student_id),
+                                           FOREIGN KEY (subject_id) REFERENCES subjects(subject_id)
+);
 
 CREATE TABLE IF NOT EXISTS scholarships (
-    scholarship_id INT AUTO_INCREMENT PRIMARY KEY,
-    scholarship_name VARCHAR(100) NOT NULL,
-    amount INT NOT NULL
-    );
+                                            scholarship_id INT AUTO_INCREMENT PRIMARY KEY,
+                                            scholarship_name VARCHAR(100) NOT NULL,
+                                            amount INT NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS scores (
-    score_id INT AUTO_INCREMENT PRIMARY KEY,
-    student_id INT(8) ZEROFILL,
-    subject_id INT,
-    major_id INT,
-    scores FLOAT,
-    ranks CHAR(2),
-    done_grade BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (student_id) REFERENCES students(student_id),
-    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id)
-    );
+                                      score_id INT AUTO_INCREMENT PRIMARY KEY,
+                                      student_id INT(8) ZEROFILL,
+                                      subject_id INT,
+                                      major_id INT,
+                                      scores FLOAT,
+                                      ranks CHAR(2),
+                                      done_grade BOOLEAN DEFAULT FALSE,
+                                      FOREIGN KEY (student_id) REFERENCES students(student_id),
+                                      FOREIGN KEY (subject_id) REFERENCES subjects(subject_id)
+);
 
 -- 밑엔 테스팅 데이터임
 
@@ -76,10 +77,10 @@ INSERT INTO professors (professor_id, name, major, passwords) VALUES
 
 
 -- 과목
-INSERT INTO subjects (subject_name, professor_id, major) VALUES
-                                                             ('기초 프로그래밍', 1234567890, 'Computer Science'),
-                                                             ('기초 물리학', 2345678901, 'Physics'),
-                                                             ('선형대수학', 3456789012, 'Mathematics');
+INSERT INTO subjects (subject_name, professor_id, major, max_count) VALUES
+                                                             ('기초 프로그래밍', 1234567890, 'Computer Science', 30),
+                                                             ('기초 물리학', 2345678901, 'Physics', 30),
+                                                             ('선형대수학', 3456789012, 'Mathematics', 30);
 
 -- 수강
 INSERT INTO enrollments (student_id, subject_id) VALUES
