@@ -43,17 +43,16 @@ const currentTime = styled(Typography)(({ theme }) => ({
         color: theme.palette.text.secondary,
     }))
 
-const ConfirmedCourses = () => {
+const ConfirmedCourses = ({studentId}) => {
     const [courses, setCourses] = useState([]);
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [openDialog, setOpenDialog] = useState(false);
     const [currentTime, setCurrentTime] = useState('');
-    const studentInfo = JSON.parse(localStorage.getItem('user'));
 
     // 수강신청 확정목록 조회 함수
     const Confirmed_Subject_view = async () => {
         try {
-            const response = await axios.get(`/api/registered-courses/student/${studentInfo.id}`);
+            const response = await axios.get(`/api/student/${studentId}/registered-courses`);
             setCourses(response.data);
         } catch (error) {
             console.error('수강확정 목록 패칭 에러:', error);
@@ -63,7 +62,7 @@ const ConfirmedCourses = () => {
     // 수강취소 함수
     const drop_sub = async (subjectId) => {
         try {
-            await axios.delete(`/api/registered-courses/${studentInfo.id}/${subjectId}`);
+            await axios.delete(`/api/student/${studentId}/registered-course/delete`);
             await Confirmed_Subject_view(); // 리스트 새로고침
             setOpenDialog(false);
         } catch (error) {
