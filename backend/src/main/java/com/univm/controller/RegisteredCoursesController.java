@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.List;
 
 @RestController
-@RequestMapping("api/student")
+@RequestMapping("/api/courses")
 @CrossOrigin(
         origins = "http://localhost:3000",
         allowedHeaders = "*",
@@ -29,7 +29,7 @@ public class RegisteredCoursesController {
     private RegisteredCoursesService registeredCoursesService;
 
     // 학생의 수강신청 목록을 조회하는 메서드
-    @GetMapping("/{studentId}/registered-courses")
+    @GetMapping("/registered")
     public ResponseEntity<?> getConfirmedCourses(@PathVariable String studentId) {
         try {
             List<Map<String, Object>> courses = registeredCoursesService.Confirmed_Subject_view(studentId); // 수강신청 목록 조회
@@ -43,7 +43,7 @@ public class RegisteredCoursesController {
     }
 
     // 학생이 수강신청을 취소하는 메서드
-    @DeleteMapping("/{studentId}/registered-courses/delete")
+    @DeleteMapping("/registered/{studentId}")
     public ResponseEntity<?> dropCourse(
             @PathVariable String studentId,
             @PathVariable String subjectId) {

@@ -31,7 +31,7 @@ const RegisteredCourses = () => {
     useEffect(() => {
         const fetchRegisteredCourses = async () => {
             try {
-                const courses = await search_subID_StudentID_list(studentInfo.id);
+                const courses = await search_subID_StudentID_list(studentInfo.studentId);
                 setRegisteredCourses(courses);
             } catch (error) {
                 console.error('수강신청 패칭 에러:', error);
@@ -40,7 +40,7 @@ const RegisteredCourses = () => {
 
         // 초기 데이터 로드
         fetchRegisteredCourses();
-    }, [studentInfo.id]);
+    }, [studentInfo.studentId]);
 
     // 수강신청 확정목록 조회 함수
     const search_subID_StudentID_list = async (studentId) => {

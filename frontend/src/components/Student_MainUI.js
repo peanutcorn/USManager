@@ -66,6 +66,12 @@ const Student_MainUI = () => {
         });
     };
 
+    const handleGoRegistreredCourses = () => {
+        navigate('/student/registered-courses', {
+            state: { studentId: studentInfo.studentId }
+        });
+    };
+
     return (
         <container>
             <paper elevation={3}>
@@ -93,7 +99,7 @@ const Student_MainUI = () => {
                         <button
                             variant="contained"
                             color="secondary"
-                            onClick={() => navigate('/student/registered-courses')}
+                            onClick={handleGoRegistreredCourses}
                             startIcon={<buttonIcon/>}
                         >
                             수강신청 확정목록 조회
