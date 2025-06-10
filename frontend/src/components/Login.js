@@ -58,13 +58,22 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
 
+    // 로그아웃 핸들러 (세션 정리 및 메인으로 이동)
+    const handleLogout = async () => {
+        try {
+            await fetch("http://localhost:8080/api/auth/logout", {
+                method: "POST",
+                credentials: "include"
+            });
+        } catch (e) { /* 예외 무시, 어차피 이동 */ }
+        window.localStorage.clear();
+        navigate("/login");
+    };
+
     // 컴포넌트 마운트 시 이미 로그인되어 있는지 확인
     useEffect(() => {
         if (SessionManager.isLoggedIn()) {
-            const { userData } = SessionManager.getSession();
-            if (userData && userData.role) {
-                redirectToUserPage(userData.role);
-            }
+            handleLogout();
         }
     }, []);
 
@@ -115,6 +124,7 @@ const Login = () => {
                 SessionManager.setSession(response.data.sessionId, {
                     role: response.data.role,
                     name: response.data.name,
+                    major: response.data.major,
                     studentId: response.data.studentId,
                     professorId: response.data.professorId,
                     adminId: response.data.adminId

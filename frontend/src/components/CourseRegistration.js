@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useLocation, useNavigate } from "react-router-dom";
 
 // 인원 초과 알림
 function ms_Studendexceed() {
@@ -22,10 +23,18 @@ function same_subject(enrollments, subjectId) {
 }
 
 // 학생의 수강신청 내역+과목조회
-// 반환: [{ subject_id, subject_name, professor_name, department_name, current_count, max_count, ... }]
 async function search_subID_StudentID_list(studentId, filterType = "", filterValue = "") {
-    // 서버에서는 studentId별 신청내역과 과목목록, 검색필터(학과/강의명) 지원
-    let url = `http://localhost:8080/api/student/${studentId}/course-registration-list`;
+    if (
+        !studentId ||
+        studentId === "" ||
+        studentId === undefined ||
+        studentId === null ||
+        studentId === "undefined" ||
+        isNaN(Number(studentId))
+    ) {
+        throw new Error("학생 정보가 올바르지 않습니다.");
+    }
+    let url = `/api/student/${studentId}/course-registration-list`;
     if (filterType && filterValue) {
         url += `?filterType=${filterType}&filterValue=${encodeURIComponent(filterValue)}`;
     }
@@ -33,29 +42,46 @@ async function search_subID_StudentID_list(studentId, filterType = "", filterVal
     return res.data; // { subjects: [ ... ], enrollments: [ ... ] }
 }
 
-export default function CourseRegistration({ studentId }) {
+export default function CourseRegistration(props) {
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    // 우선순위: props.studentId > location.state.studentId
+    let studentId =
+        props.studentId ||
+        (location.state && location.state.studentId) ||
+        null;
+
+    // studentId가 string일 수 있으니, 숫자로 안전 변환
+    if (typeof studentId === "string" && studentId !== "" && studentId !== "undefined") {
+        studentId = Number(studentId);
+    }
+
     const [subjectList, setSubjectList] = useState([]);
     const [enrollments, setEnrollments] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchType, setSearchType] = useState("major");
     const [searchValue, setSearchValue] = useState("");
-    const [data, setData] = useState(null);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        axios.get(`/api/student/${studentId}/course-registration-list`)
-            .then(res => {
-                setData(res.data);
-                setLoading(false);
-            })
-            .catch(err => {
-                setError('수강신청 데이터를 불러오지 못했습니다.');
-                setLoading(false);
-            });
+        if (
+            !studentId ||
+            studentId === "" ||
+            studentId === undefined ||
+            studentId === null ||
+            studentId === "undefined" ||
+            isNaN(Number(studentId))
+        ) {
+            setError("학생 정보가 올바르지 않습니다.");
+            setSubjectList([]);
+            setEnrollments([]);
+            return;
+        }
+        setError('');
+        fetchSubjectsAndEnrollments();
+        // eslint-disable-next-line
     }, [studentId]);
-
-    if (loading) return <div>로딩중...</div>;
-    if (error) return <div>{error}</div>;
 
     // 과목+신청내역 조회
     const fetchSubjectsAndEnrollments = async (filterType = "", filterValue = "") => {
@@ -65,7 +91,7 @@ export default function CourseRegistration({ studentId }) {
             setSubjectList(data.subjects || []);
             setEnrollments(data.enrollments || []);
         } catch (e) {
-            window.alert("수강신청 데이터를 불러오지 못했습니다.");
+            setError(e.message || "수강신청 데이터를 불러오지 못했습니다.");
             setSubjectList([]);
             setEnrollments([]);
         } finally {
@@ -75,25 +101,36 @@ export default function CourseRegistration({ studentId }) {
 
     // 검색 버튼 클릭
     const handleSearch = () => {
+        if (
+            !studentId ||
+            studentId === "" ||
+            studentId === undefined ||
+            studentId === null ||
+            studentId === "undefined" ||
+            isNaN(Number(studentId))
+        ) {
+            setError("학생 정보가 올바르지 않습니다.");
+            setSubjectList([]);
+            setEnrollments([]);
+            return;
+        }
+        setError('');
         fetchSubjectsAndEnrollments(searchType, searchValue.trim());
     };
 
     // 수강신청 버튼 클릭
     const handleRegister = async subject => {
-        // 중복 신청 체크
         if (same_subject(enrollments, subject.subject_id)) {
             window.alert("이미 신청한 과목입니다.");
             return;
         }
-        // 인원 초과 체크
         if (MAX_STU(subject.current_count, subject.max_count)) {
             ms_Studendexceed();
             return;
         }
-        // 수강신청 요청
         try {
             await axios.post(
-                "http://localhost:8080/api/student/course-registration",
+                "/api/student/course-registration",
                 {
                     student_id: studentId,
                     subject_id: subject.subject_id
@@ -101,12 +138,13 @@ export default function CourseRegistration({ studentId }) {
                 { withCredentials: true }
             );
             ms_ConfirmRegisterSubject();
-            // 최신 데이터로 갱신
             fetchSubjectsAndEnrollments(searchType, searchValue.trim());
         } catch (e) {
-            window.alert("수강신청에 실패했습니다.");
+            window.alert(e?.response?.data?.error || "수강신청에 실패했습니다.");
         }
     };
+
+    if (error) return <div style={{ color: "red", margin: 24 }}>{error}</div>;
 
     return (
         <div style={{ padding: 24 }}>
