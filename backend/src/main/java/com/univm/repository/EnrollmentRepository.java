@@ -15,8 +15,8 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Integer>
     @Query("SELECT e FROM Enrollment e WHERE e.student.name LIKE %:studentName%")
     List<Enrollment> findByStudentNameContaining(@Param("studentName") String studentName);
 
-    List<Enrollment> findByStudent_StudentId(Integer studentId);
+    List<Enrollment> findByStudentStudentId(Integer studentId);
     List<Enrollment> findByStudentStudentIdAndEnrollStatus(Integer studentId, String enrollStatus);
-    long countBySubject_SubjectId(Integer subjectId);
-    boolean existsByStudent_StudentIdAndSubject_SubjectId(Integer studentId, Integer subjectId);
+    long countBySubjectSubjectId(Integer subjectId);
+    boolean existsByStudentStudentIdAndSubjectSubjectId(Integer studentId, Integer subjectId);
 }

@@ -1,63 +1,59 @@
 package com.univm.controller;
 
-import com.univm.service.RegisteredCoursesService;
+import com.univm.model.Enrollment;
+import com.univm.repository.EnrollmentRepository;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
-import java.util.List;
+import java.util.*;
 
 @RestController
-@RequestMapping("/api/courses")
-@CrossOrigin(
-        origins = "http://localhost:3000",
-        allowedHeaders = "*",
-        allowCredentials = "true",
-        methods = {
-                RequestMethod.GET,
-                RequestMethod.POST,
-                RequestMethod.PUT,
-                RequestMethod.DELETE,
-                RequestMethod.OPTIONS
-        }
-)
+@RequestMapping("/api/courses/registered")
 public class RegisteredCoursesController {
-
-    // 수강신청 서비스 클래스 주입
     @Autowired
-    private RegisteredCoursesService registeredCoursesService;
+    private EnrollmentRepository enrollmentRepository;
 
-    // 학생의 수강신청 목록을 조회하는 메서드
-    @GetMapping("/registered")
-    public ResponseEntity<?> getConfirmedCourses(@PathVariable String studentId) {
+    @GetMapping
+    public ResponseEntity<Map<String, Object>> getRegisteredCourses(HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
         try {
-            List<Map<String, Object>> courses = registeredCoursesService.Confirmed_Subject_view(studentId); // 수강신청 목록 조회
-            return ResponseEntity.ok(courses);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of( // 수강신청 목록 조회 중 에러 발생 시 응답
-                    "status", "error",
-                    "message", e.getMessage()
-            ));
-        }
-    }
+            Object roleObj = session.getAttribute("role");
+            Object studentIdObj = session.getAttribute("studentId");
 
-    // 학생이 수강신청을 취소하는 메서드
-    @DeleteMapping("/registered/{studentId}")
-    public ResponseEntity<?> dropCourse(
-            @PathVariable String studentId,
-            @PathVariable String subjectId) {
-        try { // 수강신청 취소 요청 처리
-            registeredCoursesService.drop_sub(studentId, subjectId);
-            return ResponseEntity.ok(Map.of(
-                    "status", "success",
-                    "message", "Course successfully dropped"
-            ));
-        } catch (Exception e) { // 수강신청 취소 중 에러 발생 시 응답
-            return ResponseEntity.badRequest().body(Map.of(
-                    "status", "error",
-                    "message", e.getMessage()
-            ));
+            String role = (roleObj != null) ? roleObj.toString() : null;
+            String studentIdStr = (studentIdObj != null) ? studentIdObj.toString() : null;
+
+            if (!"student".equals(role) || studentIdStr == null || studentIdStr.isEmpty() || "null".equals(studentIdStr)) {
+                result.put("error", "학생 정보가 없습니다. 다시 로그인 해주세요.");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(result);
+            }
+
+            int studentId = Integer.parseInt(studentIdStr);
+
+            // *** 이 부분이 중요: 오직 int studentId만 넘길 것! ***
+            List<Enrollment> enrollments = enrollmentRepository.findByStudentStudentId(studentId);
+
+            List<Map<String, Object>> mappedCourses = new ArrayList<>();
+            for (Enrollment e : enrollments) {
+                Map<String, Object> c = new HashMap<>();
+                c.put("enrollmentId", e.getEnrollmentId());
+                c.put("subjectId", e.getSubject() != null ? e.getSubject().getSubjectId() : null);
+                c.put("subjectName", e.getSubject() != null ? e.getSubject().getSubjectName() : "");
+                String professorName = "";
+                if (e.getSubject() != null && e.getSubject().getProfessor() != null) {
+                    professorName = e.getSubject().getProfessor().getName() != null
+                            ? e.getSubject().getProfessor().getName() : "";
+                }
+                c.put("professorName", professorName);
+                c.put("status", e.getEnrollStatus());
+                mappedCourses.add(c);
+            }
+            result.put("courses", mappedCourses);
+            return ResponseEntity.ok(result);
+        } catch (Exception ex) {
+            result.put("error", "서버 오류: " + ex.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
         }
     }
 }

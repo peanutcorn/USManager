@@ -49,7 +49,7 @@ public class CourseRegistrationController {
             }
         }
 
-        List<Enrollment> enrollments = enrollmentRepo.findByStudent_StudentId(studentId);
+        List<Enrollment> enrollments = enrollmentRepo.findByStudentStudentId(studentId);
 
         Map<Integer, Long> subjectIdToCount = enrollmentRepo.findAll().stream()
                 .collect(Collectors.groupingBy(
