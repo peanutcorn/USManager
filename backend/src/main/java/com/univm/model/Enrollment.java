@@ -20,6 +20,9 @@ public class Enrollment {
     @JoinColumn(name = "subject_id")
     private Subject subject;
 
+    @Column(name = "enroll_status") // "CONFIRMED", "CANCELLED" 등
+    private String enrollStatus;
+
     // --- Getter methods ---
     public Integer getEnrollmentId() { return enrollmentId; }
     public Student getStudent() { return student; }

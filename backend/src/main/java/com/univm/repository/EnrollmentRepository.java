@@ -16,6 +16,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Integer>
     List<Enrollment> findByStudentNameContaining(@Param("studentName") String studentName);
 
     List<Enrollment> findByStudent_StudentId(Integer studentId);
+    List<Enrollment> findByStudent_StudentIdAndEnrollStatus(Integer studentId, String enrollStatus);
     long countBySubject_SubjectId(Integer subjectId);
     boolean existsByStudent_StudentIdAndSubject_SubjectId(Integer studentId, Integer subjectId);
 }

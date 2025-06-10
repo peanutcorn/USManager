@@ -17,8 +17,9 @@ public class Subject {
     @Column(name = "major")
     private String major;
 
-    @Column(name = "professor_id")
-    private Integer professorId;
+    @ManyToOne
+    @JoinColumn(name = "professor_id")
+    private Professor professor;
 
     @Column(name = "max_count")
     private Integer maxCount;
@@ -27,7 +28,7 @@ public class Subject {
     public Integer getSubjectId() { return subjectId; }
     public String getSubjectName() { return subjectName; }
     public String getMajor() { return major; }
-    public Integer getProfessorId() { return professorId; }
+    public Professor getProfessor() { return professor; }
     public Integer getMaxCount() { return maxCount; }
 
     // --- Alias getter for department name compatibility ---
@@ -37,6 +38,5 @@ public class Subject {
     public void setSubjectId(Integer subjectId) { this.subjectId = subjectId; }
     public void setSubjectName(String subjectName) { this.subjectName = subjectName; }
     public void setMajor(String major) { this.major = major; }
-    public void setProfessorId(Integer professorId) { this.professorId = professorId; }
     public void setMaxCount(Integer maxCount) { this.maxCount = maxCount; }
 }

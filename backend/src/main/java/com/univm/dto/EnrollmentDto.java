@@ -7,6 +7,7 @@ import lombok.Setter;
 @Getter @Setter
 public class EnrollmentDto {
     private Integer enrollment_id;
+    private String enrollStatus;
     private Integer student_id;
     private String student_name;
     private Integer student_year;
@@ -16,6 +17,8 @@ public class EnrollmentDto {
     // Getter & Setter
     public Integer getEnrollment_id() { return enrollment_id; }
     public void setEnrollment_id(Integer enrollment_id) { this.enrollment_id = enrollment_id; }
+    public String getEnrollStatus() { return enrollStatus; }
+    public void setEnrollStatus(String enrollStatus) { this.enrollStatus = enrollStatus; }
     public Integer getStudent_id() { return student_id; }
     public void setStudent_id(Integer student_id) { this.student_id = student_id; }
     public String getStudent_name() { return student_name; }
@@ -31,6 +34,7 @@ public class EnrollmentDto {
     public static EnrollmentDto fromEntity(com.univm.model.Enrollment e) {
         EnrollmentDto dto = new EnrollmentDto();
         dto.setEnrollment_id(e.getEnrollmentId());
+        dto.setEnrollStatus(e.getEnrollStatus());
         dto.setStudent_id(e.getStudent().getStudentId());
         dto.setStudent_name(e.getStudent().getStudentName());
         dto.setSubject_id(e.getSubject().getSubjectId());

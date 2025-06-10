@@ -68,7 +68,7 @@ const Student_MainUI = () => {
                     </Typography>
                 </header>
 
-                <Grid container direction="column" spacing={2} alignItems="center">
+                <Grid container direction="column" spacing={3} alignItems="center">
                     <Grid item>
                         <button
                             variant="contained"
@@ -87,6 +87,16 @@ const Student_MainUI = () => {
                             startIcon={<buttonIcon/>}
                         >
                             수강신청 확정목록 조회
+                        </button>
+                    </Grid>
+                    <Grid item>
+                        <button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => navigate('/student/confirmed-courses')}
+                            startIcon={<buttonIcon/>}
+                        >
+                            수강정정
                         </button>
                     </Grid>
                 </Grid>

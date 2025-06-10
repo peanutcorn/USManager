@@ -61,7 +61,7 @@ public class CourseRegistrationController {
             Map<String, Object> m = new HashMap<>();
             m.put("subject_id", s.getSubjectId());
             m.put("subject_name", s.getSubjectName());
-            Professor p = (s.getProfessorId() != null) ? professorRepo.findByProfessorId(s.getProfessorId()).orElse(null) : null;
+            Professor p = (s.getProfessor().getProfessorId() != null) ? professorRepo.findByProfessorId(s.getProfessor().getProfessorId()).orElse(null) : null;
             m.put("professor_name", p != null ? p.getProfessorName() : "");
             m.put("department_name", s.getMajor() != null ? s.getMajor() : "");
             m.put("current_count", subjectIdToCount.getOrDefault(s.getSubjectId(), 0L));

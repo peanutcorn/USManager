@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS enrollments (
                                            student_id INT(8) ZEROFILL,
                                            subject_id INT,
                                            FOREIGN KEY (student_id) REFERENCES students(student_id),
-                                           FOREIGN KEY (subject_id) REFERENCES subjects(subject_id)
+                                           FOREIGN KEY (subject_id) REFERENCES subjects(subject_id),
+                                           enroll_status VARCHAR(50)
 );
 
 CREATE TABLE IF NOT EXISTS scholarships (
@@ -83,11 +84,11 @@ INSERT INTO subjects (subject_name, professor_id, major, max_count) VALUES
                                                              ('선형대수학', 3456789012, 'Mathematics', 30);
 
 -- 수강
-INSERT INTO enrollments (student_id, subject_id) VALUES
-                                                     (12345678, 1),
-                                                     (12345678, 2),
-                                                     (23456789, 3),
-                                                     (34567890, 2);
+INSERT INTO enrollments (student_id, subject_id, enroll_status) VALUES
+                                                     (12345678, 1, 'NOT'),
+                                                     (12345678, 2, 'CONFIRMED'),
+                                                     (23456789, 3, 'NOT'),
+                                                     (34567890, 2, 'NOT');
 
 -- 장학금(안쓸거)
 INSERT INTO scholarships (scholarship_name, amount) VALUES
